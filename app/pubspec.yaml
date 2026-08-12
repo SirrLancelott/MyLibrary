@@ -36,6 +36,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.6.0
   intl: ^0.20.3
+  sqlite3: ^3.5.1
+  sqlite3_flutter_libs: ^0.6.0+eol
+  crypto: ^3.0.7
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

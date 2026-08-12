@@ -94,12 +94,14 @@ class IstatistikKutusu extends StatelessWidget {
     final tema = Theme.of(context);
     final vurgu = renk ?? tema.colorScheme.primary;
 
+    // Yerlesim dar pencerede de tasmamali: baslik ve alt bilgi sabit
+    // yukseklikte kalir, ortadaki sayi kalan alani doldurup gerekirse
+    // kucultulur. Boylece kutu ne kadar basik olursa olsun icerik sigar.
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -115,6 +117,8 @@ class IstatistikKutusu extends StatelessWidget {
                 Expanded(
                   child: Text(
                     baslik,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: tema.textTheme.labelLarge?.copyWith(
                       color: tema.colorScheme.onSurfaceVariant,
                     ),
@@ -122,25 +126,29 @@ class IstatistikKutusu extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                deger,
-                style: tema.textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.bold, color: vurgu),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    deger,
+                    style: tema.textTheme.headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold, color: vurgu),
+                  ),
+                ),
               ),
             ),
-            if (altBilgi != null) ...[
-              const SizedBox(height: 4),
+            if (altBilgi != null)
               Text(
                 altBilgi!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: tema.textTheme.bodySmall?.copyWith(
                   color: tema.colorScheme.onSurfaceVariant,
                 ),
               ),
-            ],
           ],
         ),
       ),

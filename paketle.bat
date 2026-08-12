@@ -5,84 +5,68 @@ cd /d "%~dp0"
 
 rem ---------------------------------------------------------------------------
 rem  Dagitilabilir paket uretir:  dagitim\BenimKutuphanem\  ve  .zip
-rem  Ciktida derleme araclari gerekmez; hedef makinede yalnizca
-rem  SQL Server Express + Visual C++ Runtime aranir.
+rem
+rem  Uygulama gomulu SQLite kullanir; sunucu sureci, veritabani kurulumu ve
+rem  harici bagimlilik yoktur. Karsi tarafta ZIP acilip exe'ye cift tiklanir.
 rem ---------------------------------------------------------------------------
 
 set "PAKET=dagitim\BenimKutuphanem"
+set "CIKTI=app\build\windows\x64\runner\Release"
 
 echo ============================================
 echo  Benim Kutuphanem - Paketleme
 echo ============================================
 echo.
 
-echo [1/6] Onceki paket temizleniyor...
+echo [1/4] Onceki paket temizleniyor...
 if exist "dagitim" rmdir /s /q "dagitim"
-mkdir "%PAKET%" 2>nul
 
-rem  self-contained: .NET calisma zamani exe'nin yanina gomulur, boylece
-rem  hedef makineye ayrica .NET Runtime kurmak gerekmez.
-rem  DebugType=none: .pdb hata ayiklama dosyalari pakete girmez.
-echo [2/6] API yayinlaniyor (kendi kendine yeterli)...
-dotnet publish backend\KutuphaneApi -c Release -r win-x64 --self-contained true ^
-    -p:DebugType=none -p:DebugSymbols=false -o "%PAKET%\api" --nologo
-if errorlevel 1 goto :hata
-
-echo.
-echo [3/6] Masaustu uygulamasi derleniyor...
+echo [2/4] Uygulama derleniyor...
 pushd app
 call flutter build windows --release
 if errorlevel 1 (popd & goto :hata)
 popd
 
 echo.
-echo [4/6] Uygulama dosyalari kopyalaniyor...
-xcopy "app\build\windows\x64\runner\Release" "%PAKET%\uygulama\" /E /I /Y /Q >nul
+echo [3/4] Dosyalar kopyalaniyor...
+xcopy "%CIKTI%" "%PAKET%\" /E /I /Y /Q >nul
 if errorlevel 1 goto :hata
+copy /y "dagitim_sablonu\OKUBENI.txt" "%PAKET%\" >nul
 
-rem  DIKKAT: sql\02_veri.sql pakete GIRMEZ. O dosya kisisel kitap listesini
-rem  icerir; dagitilan kopya bos bir veritabaniyla baslar.
-echo [5/6] Betikler ve belgeler kopyalaniyor...
-mkdir "%PAKET%\sql" 2>nul
-copy /y "sql\01_sema.sql"            "%PAKET%\sql\"  >nul
-copy /y "baslat.bat"                 "%PAKET%\"      >nul
-copy /y "dagitim_sablonu\KUR.bat"    "%PAKET%\"      >nul
-copy /y "dagitim_sablonu\OKUBENI.txt" "%PAKET%\"     >nul
+rem Beklenen dosyalar yerinde mi
+if not exist "%PAKET%\BenimKutuphanem.exe"  goto :eksik
+if not exist "%PAKET%\flutter_windows.dll"  goto :eksik
+if not exist "%PAKET%\sqlite3.dll"          goto :eksik
+if not exist "%PAKET%\data"                 goto :eksik
+if not exist "%PAKET%\OKUBENI.txt"          goto :eksik
 
-rem Paketin dogru kuruldugunu dogrula
-if not exist "%PAKET%\api\KutuphaneApi.exe"         goto :eksik
-if not exist "%PAKET%\uygulama\BenimKutuphanem.exe" goto :eksik
-if not exist "%PAKET%\uygulama\flutter_windows.dll" goto :eksik
-if not exist "%PAKET%\uygulama\data"                goto :eksik
-if not exist "%PAKET%\sql\01_sema.sql"              goto :eksik
+rem Kisisel veri sizintisina karsi guvenlik kontrolu: uygulama bos
+rem veritabaniyla baslar, pakete hicbir .db dosyasi girmemelidir.
+if exist "%PAKET%\*.db" goto :veriSizdi
 
-rem Kisisel veri sizintisina karsi guvenlik kontrolu
-if exist "%PAKET%\sql\02_veri.sql" goto :veriSizdi
-
-echo [6/6] ZIP olusturuluyor...
+echo [4/4] ZIP olusturuluyor...
 powershell -NoProfile -Command "Compress-Archive -Path 'dagitim\BenimKutuphanem' -DestinationPath 'dagitim\BenimKutuphanem.zip' -Force"
 if errorlevel 1 goto :hata
 
 echo.
 echo ============================================
 echo  Paket hazir:
-echo    dagitim\BenimKutuphanem\        (klasor)
-echo    dagitim\BenimKutuphanem.zip     (gonderilecek dosya)
+echo    dagitim\BenimKutuphanem.zip
 echo.
-echo  Veritabani BOS baslar - kisisel kitap listesi pakete dahil degil.
-echo.
-echo  Karsi tarafta sirasiyla:
+echo  Karsi tarafta:
 echo    1) ZIP'i tamamen cikar
-echo    2) KUR.bat  (bir kez)
-echo    3) baslat.bat
+echo    2) BenimKutuphanem.exe dosyasina cift tikla
+echo.
+echo  Kurulum yok, veritabani kurulumu yok.
+echo  Kutuphane bos baslar; giris admin / 1234
 echo ============================================
 pause
 exit /b 0
 
 :veriSizdi
 echo.
-echo HATA: sql\02_veri.sql pakete girmis - bu dosya kisisel kitap
-echo listesini icerir ve dagitilmamalidir. Paket iptal edildi.
+echo HATA: Pakete bir .db dosyasi girmis. Kisisel kitap listesi
+echo dagitilmamalidir. Paket iptal edildi.
 rmdir /s /q "dagitim"
 pause
 exit /b 1

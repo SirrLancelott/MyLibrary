@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../modeller/modeller.dart';
-import '../servisler/api_servisi.dart';
+import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/istek_dialog.dart';
 import '../widgetlar/ortak.dart';
 
@@ -11,16 +11,14 @@ import '../widgetlar/ortak.dart';
 class IsteklerSekmesi extends StatefulWidget {
   const IsteklerSekmesi({
     super.key,
-    required this.api,
+    required this.servis,
     required this.referanslar,
     required this.veriDegisti,
-    required this.oturumDustu,
   });
 
-  final ApiServisi api;
+  final KutuphaneServisi servis;
   final Referanslar referanslar;
   final VoidCallback veriDegisti;
-  final VoidCallback oturumDustu;
 
   @override
   State<IsteklerSekmesi> createState() => _IsteklerSekmesiState();
@@ -59,7 +57,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
     });
 
     try {
-      final gelen = await widget.api.istekleriGetir(
+      final gelen = await widget.servis.istekleriGetir(
         arama: _arama.text.trim().isEmpty ? null : _arama.text.trim(),
         tur: _turFiltresi,
         site: _siteFiltresi,
@@ -69,12 +67,8 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
         _istekler = gelen;
         _yukleniyor = false;
       });
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
-      if (hata.oturumDustu) {
-        widget.oturumDustu();
-        return;
-      }
       setState(() {
         _hata = hata.mesaj;
         _yukleniyor = false;
@@ -94,13 +88,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
       bilgiGoster(context, mesaj);
       widget.veriDegisti();
       await _yukle();
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
-      if (hata.oturumDustu) {
-        widget.oturumDustu();
-      } else {
-        bilgiGoster(context, hata.mesaj, hata: true);
-      }
+      bilgiGoster(context, hata.mesaj, hata: true);
     }
   }
 
@@ -109,7 +99,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
         referanslar: widget.referanslar);
     if (yeni == null) return;
     await _islemSarmala(
-        () => widget.api.istekEkle(yeni), '“${yeni.ad}” istek listesine eklendi.');
+        () => widget.servis.istekEkle(yeni), '“${yeni.ad}” istek listesine eklendi.');
   }
 
   Future<void> _duzenle(Istek istek) async {
@@ -117,7 +107,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
         referanslar: widget.referanslar, mevcut: istek);
     if (guncel == null) return;
     await _islemSarmala(
-        () => widget.api.istekGuncelle(istek.istekId, guncel), 'Kayıt güncellendi.');
+        () => widget.servis.istekGuncelle(istek.istekId, guncel), 'Kayıt güncellendi.');
   }
 
   Future<void> _sil(Istek istek) async {
@@ -128,7 +118,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
     );
     if (!onay) return;
     await _islemSarmala(
-        () => widget.api.istekSil(istek.istekId), 'Kayıt silindi.');
+        () => widget.servis.istekSil(istek.istekId), 'Kayıt silindi.');
   }
 
   Future<void> _kitapligaTasi(Istek istek) async {
@@ -140,7 +130,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
       onayla: 'Taşı',
     );
     if (!onay) return;
-    await _islemSarmala(() => widget.api.istegiKitapligaTasi(istek.istekId),
+    await _islemSarmala(() => widget.servis.istegiKitapligaTasi(istek.istekId),
         '“${istek.ad}” kitaplığa taşındı.');
   }
 

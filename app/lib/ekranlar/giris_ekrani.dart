@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../servisler/api_servisi.dart';
+import '../servisler/kutuphane_servisi.dart';
 import 'ana_ekran.dart';
 
 /// Uygulamanin giris ekrani. Kullanici adi ve sifre veritabanindaki
@@ -9,13 +9,13 @@ import 'ana_ekran.dart';
 class GirisEkrani extends StatefulWidget {
   const GirisEkrani({
     super.key,
-    required this.api,
+    required this.servis,
     required this.temaDegistir,
     this.acilisMesaji,
     this.baslangicKullaniciAdi,
   });
 
-  final ApiServisi api;
+  final KutuphaneServisi servis;
   final VoidCallback temaDegistir;
 
   /// Sifre degistirdikten sonra buraya donuldugunde gosterilecek bilgi.
@@ -63,7 +63,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     });
 
     try {
-      final oturum = await widget.api.girisYap(
+      final oturum = await widget.servis.girisYap(
         _kullaniciAdi.text.trim(),
         _sifre.text,
       );
@@ -71,13 +71,13 @@ class _GirisEkraniState extends State<GirisEkrani> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => AnaEkran(
-            api: widget.api,
+            servis: widget.servis,
             oturum: oturum,
             temaDegistir: widget.temaDegistir,
           ),
         ),
       );
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       setState(() {
         _hata = hata.mesaj;
         _sifre.clear();

@@ -1,30 +1,24 @@
-/// API'den gelen JSON yapilarinin Dart karsiliklari.
+/// Uygulamanin veri modelleri.
+///
+/// Onceki surumde bu siniflar API'den gelen JSON'dan uretiliyordu.
+/// Veri artik dogrudan SQLite'tan okundugu icin JSON donusum metotlari
+/// kaldirildi; satir -> nesne esleme KutuphaneServisi icinde yapiliyor.
 library;
 
 class Oturum {
   const Oturum({
-    required this.token,
     required this.kullaniciId,
     required this.kullaniciAdi,
     this.adSoyad,
     this.oncekiGiris,
   });
 
-  final String token;
   final int kullaniciId;
   final String kullaniciAdi;
   final String? adSoyad;
-  final DateTime? oncekiGiris;
 
-  factory Oturum.jsondan(Map<String, dynamic> j) => Oturum(
-        token: j['token'] as String,
-        kullaniciId: j['kullaniciId'] as int,
-        kullaniciAdi: j['kullaniciAdi'] as String,
-        adSoyad: j['adSoyad'] as String?,
-        oncekiGiris: j['oncekiGiris'] == null
-            ? null
-            : DateTime.parse(j['oncekiGiris'] as String),
-      );
+  /// Bu giristen bir onceki giris zamani (ilk giriste null).
+  final DateTime? oncekiGiris;
 
   String get gorunenAd =>
       (adSoyad != null && adSoyad!.trim().isNotEmpty) ? adSoyad! : kullaniciAdi;
@@ -51,26 +45,8 @@ class Kitap {
   final int? sayfaSayisi;
   final bool okunduMu;
 
-  factory Kitap.jsondan(Map<String, dynamic> j) => Kitap(
-        kitapId: j['kitapId'] as int,
-        siraNo: j['siraNo'] as int,
-        ad: j['ad'] as String,
-        yazar: j['yazar'] as String?,
-        yayinevi: j['yayinevi'] as String?,
-        tur: j['tur'] as String?,
-        sayfaSayisi: j['sayfaSayisi'] as int?,
-        okunduMu: j['okunduMu'] as bool,
-      );
-
-  Map<String, dynamic> gonderilecekJson() => {
-        'ad': ad,
-        'yazar': yazar,
-        'yayinevi': yayinevi,
-        'tur': tur,
-        'sayfaSayisi': sayfaSayisi,
-        'okunduMu': okunduMu,
-      };
-
+  /// Tek bir alani degistirip kaydi geri gondermek icin.
+  /// Listedeki "okundu" anahtari bunu kullanir.
   Kitap kopyala({
     String? ad,
     String? yazar,
@@ -113,32 +89,10 @@ class Istek {
   final String? tur;
   final int? sayfaSayisi;
   final String? site;
+
+  /// TL cinsinden. Veritabaninda kurus (tam sayi) olarak saklanir.
   final double? fiyat;
   final bool satinAlindi;
-
-  factory Istek.jsondan(Map<String, dynamic> j) => Istek(
-        istekId: j['istekId'] as int,
-        siraNo: j['siraNo'] as int,
-        ad: j['ad'] as String,
-        yazar: j['yazar'] as String?,
-        yayinevi: j['yayinevi'] as String?,
-        tur: j['tur'] as String?,
-        sayfaSayisi: j['sayfaSayisi'] as int?,
-        site: j['site'] as String?,
-        fiyat: (j['fiyat'] as num?)?.toDouble(),
-        satinAlindi: j['satinAlindi'] as bool,
-      );
-
-  Map<String, dynamic> gonderilecekJson() => {
-        'ad': ad,
-        'yazar': yazar,
-        'yayinevi': yayinevi,
-        'tur': tur,
-        'sayfaSayisi': sayfaSayisi,
-        'site': site,
-        'fiyat': fiyat,
-        'satinAlindi': satinAlindi,
-      };
 }
 
 class Ozet {
@@ -156,16 +110,9 @@ class Ozet {
   final int okunmayanKitap;
   final int toplamSayfa;
   final int istekAdedi;
-  final double istekToplamTutar;
 
-  factory Ozet.jsondan(Map<String, dynamic> j) => Ozet(
-        toplamKitap: j['toplamKitap'] as int,
-        okunanKitap: j['okunanKitap'] as int,
-        okunmayanKitap: j['okunmayanKitap'] as int,
-        toplamSayfa: j['toplamSayfa'] as int,
-        istekAdedi: j['istekAdedi'] as int,
-        istekToplamTutar: (j['istekToplamTutar'] as num).toDouble(),
-      );
+  /// Henuz alinmamis kitaplarin toplami, TL.
+  final double istekToplamTutar;
 }
 
 class Referanslar {
@@ -187,11 +134,4 @@ class Referanslar {
     turler: [],
     siteler: [],
   );
-
-  factory Referanslar.jsondan(Map<String, dynamic> j) => Referanslar(
-        yazarlar: (j['yazarlar'] as List).cast<String>(),
-        yayinevleri: (j['yayinevleri'] as List).cast<String>(),
-        turler: (j['turler'] as List).cast<String>(),
-        siteler: (j['siteler'] as List).cast<String>(),
-      );
 }

@@ -8,12 +8,6 @@ echo  Benim Kutuphanem - Derleme
 echo ============================================
 echo.
 
-echo [1/2] API derleniyor (backend\KutuphaneApi)...
-dotnet publish backend\KutuphaneApi -c Release -o backend\yayin
-if errorlevel 1 goto :hata
-
-echo.
-echo [2/2] Masaustu uygulamasi derleniyor (app)...
 pushd app
 call flutter build windows --release
 if errorlevel 1 (popd & goto :hata)
@@ -22,7 +16,11 @@ popd
 echo.
 echo ============================================
 echo  Derleme tamamlandi.
-echo  Calistirmak icin: baslat.bat
+echo.
+echo  Calistirmak icin:
+echo    app\build\windows\x64\runner\Release\BenimKutuphanem.exe
+echo.
+echo  Dagitilabilir paket icin: paketle.bat
 echo ============================================
 pause
 exit /b 0

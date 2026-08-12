@@ -8,36 +8,13 @@ yöneten Windows masaüstü uygulaması.
 
 
 ----------------------------------------------------------------
-  KURULUM  (yalnızca ilk seferde)
+  ÇALIŞTIRMA
 ----------------------------------------------------------------
 
-1) ÖN KOŞUL: SQL Server Express
+BenimKutuphanem.exe dosyasına çift tıklayın.
 
-   Bilgisayarınızda SQL Server Express kurulu olmalı.
-   Kurulu değilse Microsoft'un sitesinden ücretsiz indirebilirsiniz:
-   "SQL Server Express" + "Command Line Utilities (sqlcmd)"
-
-   Kurulum sırasında örnek adını SQLEXPRESS olarak bırakın.
-
-2) KUR.bat dosyasına çift tıklayın.
-
-   Boş bir veritabanı oluşturur. Bir dakikadan kısa sürer.
-   Sonunda hepsi sıfır olan bir özet tablo görürsünüz —
-   bu normaldir, kütüphaneniz henüz boştur.
-
-3) Bitti. Bundan sonra yalnızca baslat.bat kullanacaksınız.
-
-
-----------------------------------------------------------------
-  ÇALIŞTIRMA  (her seferinde)
-----------------------------------------------------------------
-
-baslat.bat dosyasına çift tıklayın.
-
-Ne olur:
-  - "KutuphaneApi" adlı küçük bir pencere açılır (sunucu).
-    Bu pencere uygulama açıkken kapatılmamalıdır.
-  - Ardından uygulama açılır.
+Kurulum yok. Veritabanı kurulumu yok. Sunucu penceresi yok.
+Uygulama gerekli her şeyi kendi içinde taşır.
 
 Giriş bilgileri:
       admin / 1234
@@ -49,8 +26,25 @@ Giriş bilgileri:
 "Kitap ekle" düğmesiyle kendi kitaplarınızı girmeye
 başlayabilirsiniz.
 
-Kapatırken: önce uygulamayı, sonra "KutuphaneApi" penceresini
-kapatın. Sunucu penceresi kendiliğinden kapanmaz.
+
+----------------------------------------------------------------
+  VERİLERİNİZ NEREDE
+----------------------------------------------------------------
+
+Kitaplarınız tek bir dosyada tutulur:
+
+  %LOCALAPPDATA%\BenimKutuphanem\kutuphane.db
+
+Bu yolu Çalıştır penceresine (Windows tuşu + R) yapıştırıp
+açabilirsiniz:
+
+  %LOCALAPPDATA%\BenimKutuphanem
+
+YEDEK ALMAK: kutuphane.db dosyasını kopyalamanız yeterli.
+GERİ YÜKLEMEK: uygulama kapalıyken dosyayı geri kopyalayın.
+
+Uygulamayı sildiğinizde bu dosya silinmez; verileriniz durur.
+Yeni sürüme geçerken de yerinde kalır.
 
 
 ----------------------------------------------------------------
@@ -75,6 +69,9 @@ Kitaplarım    Sahip olduğunuz kitaplar. Arama, türe göre ve
 Yazar, yayınevi, tür ve site alanlarında listede olmayan bir
 değer yazabilirsiniz; sistem onu otomatik olarak ekler.
 
+Arama Türkçe büyük/küçük harf ayrımı yapmaz: "istanbul"
+yazarak "İSTANBUL" geçen kitapları bulabilirsiniz.
+
 Sağ üstteki simgeyle açık/koyu tema arasında geçiş yapılır.
 
 
@@ -82,43 +79,37 @@ Sağ üstteki simgeyle açık/koyu tema arasında geçiş yapılır.
   SORUN GİDERME
 ----------------------------------------------------------------
 
-"Sunucuya ulaşılamadı"
-      API çalışmıyor. Uygulamayı kapatıp baslat.bat ile
-      yeniden açın. Sorun sürerse api\KutuphaneApi.exe
-      dosyasını elle çalıştırıp penceredeki hatayı okuyun.
-
-"Veritabanına erişilemedi"
-      SQL Server servisi durmuş olabilir. Başlat menüsünden
-      "Hizmetler" açıp MSSQL$SQLEXPRESS servisini başlatın.
-
 Uygulama hiç açılmıyor
       Visual C++ Redistributable (x64) eksik olabilir.
-      Microsoft'un sitesinden kurup tekrar deneyin.
+      Microsoft'un sitesinden ücretsiz kurup tekrar deneyin.
 
-KUR.bat "sqlcmd bulunamadı" diyor
-      SQL Server Command Line Utilities kurulu değil.
-      Kurduktan sonra pencereyi kapatıp tekrar açın.
+"Veritabanı açılamadı" ekranı geliyor
+      Ekranda yazan klasöre yazma izni olmayabilir veya disk
+      dolu olabilir. Ekrandaki hata metnini okuyun.
+
+Windows "bilinmeyen yayımcı" uyarısı veriyor
+      Uygulama dijital olarak imzalanmadığı için normaldir.
+      "Daha fazla bilgi" > "Yine de çalıştır" ile geçebilirsiniz.
 
 Şifremi unuttum
-      Veritabanına erişiminiz varsa dbo.Kullanicilar
-      tablosundaki SifreHash alanını sıfırlamanız gerekir.
-      Bu, teknik bilgi ister; projeyi size veren kişiye
-      danışın.
+      Veritabanı dosyasını silerseniz uygulama sıfırdan
+      başlar (admin / 1234) ama kitaplarınız da gider.
+      Önce dosyanın bir kopyasını alın.
 
 
 ----------------------------------------------------------------
   KLASÖRDE NE VAR
 ----------------------------------------------------------------
 
-  baslat.bat    Uygulamayı başlatır          <- günlük kullanım
-  KUR.bat       Veritabanını kurar           <- yalnızca ilk kez
-  OKUBENI.txt   Bu dosya
-  api\          Sunucu (arka planda çalışır)
-  uygulama\     Masaüstü uygulaması
-  sql\          Veritabanı betikleri
+  BenimKutuphanem.exe   Uygulama
+  flutter_windows.dll   Arayüz kütüphanesi
+  sqlite3.dll           Veritabanı motoru
+  data\                 Uygulama kaynakları
+  OKUBENI.txt           Bu dosya
 
-api, uygulama ve sql klasörlerini taşımayın veya yeniden
-adlandırmayın; baslat.bat onları bu adlarla arıyor.
+Dosyaları taşımayın veya yeniden adlandırmayın; exe
+yanındakileri arar. Tümünü birlikte kopyalayabilirsiniz —
+uygulama taşınabilir, USB'den bile çalışır.
 
 
 ================================================================

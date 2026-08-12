@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../servisler/api_servisi.dart';
+import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/ortak.dart';
 
 /// Giris yapmis kullanicinin kendi sifresini degistirdigi ekran.
@@ -9,11 +9,11 @@ import '../widgetlar/ortak.dart';
 class SifreDegistirSekmesi extends StatefulWidget {
   const SifreDegistirSekmesi({
     super.key,
-    required this.api,
+    required this.servis,
     required this.basarili,
   });
 
-  final ApiServisi api;
+  final KutuphaneServisi servis;
   final ValueChanged<String> basarili;
 
   @override
@@ -42,10 +42,10 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
 
     setState(() => _yukleniyor = true);
     try {
-      final mesaj = await widget.api.sifreDegistir(_mevcut.text, _yeni.text);
+      final mesaj = await widget.servis.sifreDegistir(_mevcut.text, _yeni.text);
       if (!mounted) return;
       widget.basarili(mesaj);
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
       bilgiGoster(context, hata.mesaj, hata: true);
     } finally {

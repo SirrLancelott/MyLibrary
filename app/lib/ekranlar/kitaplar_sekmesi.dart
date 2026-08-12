@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../modeller/modeller.dart';
-import '../servisler/api_servisi.dart';
+import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/kitap_dialog.dart';
 import '../widgetlar/ortak.dart';
 
@@ -11,16 +11,14 @@ import '../widgetlar/ortak.dart';
 class KitaplarSekmesi extends StatefulWidget {
   const KitaplarSekmesi({
     super.key,
-    required this.api,
+    required this.servis,
     required this.referanslar,
     required this.veriDegisti,
-    required this.oturumDustu,
   });
 
-  final ApiServisi api;
+  final KutuphaneServisi servis;
   final Referanslar referanslar;
   final VoidCallback veriDegisti;
-  final VoidCallback oturumDustu;
 
   @override
   State<KitaplarSekmesi> createState() => _KitaplarSekmesiState();
@@ -57,7 +55,7 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     });
 
     try {
-      final gelen = await widget.api.kitaplariGetir(
+      final gelen = await widget.servis.kitaplariGetir(
         arama: _arama.text.trim().isEmpty ? null : _arama.text.trim(),
         tur: _turFiltresi,
         okundu: _okunduFiltresi,
@@ -67,12 +65,8 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
         _kitaplar = gelen;
         _yukleniyor = false;
       });
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
-      if (hata.oturumDustu) {
-        widget.oturumDustu();
-        return;
-      }
       setState(() {
         _hata = hata.mesaj;
         _yukleniyor = false;
@@ -93,12 +87,12 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     if (yeni == null) return;
 
     try {
-      await widget.api.kitapEkle(yeni);
+      await widget.servis.kitapEkle(yeni);
       if (!mounted) return;
       bilgiGoster(context, '“${yeni.ad}” kitaplığa eklendi.');
       widget.veriDegisti();
       await _yukle();
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       _hatayiGoster(hata);
     }
   }
@@ -112,25 +106,25 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     if (guncel == null) return;
 
     try {
-      await widget.api.kitapGuncelle(kitap.kitapId, guncel);
+      await widget.servis.kitapGuncelle(kitap.kitapId, guncel);
       if (!mounted) return;
       bilgiGoster(context, 'Kitap güncellendi.');
       widget.veriDegisti();
       await _yukle();
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       _hatayiGoster(hata);
     }
   }
 
   Future<void> _okunduDegistir(Kitap kitap, bool deger) async {
     try {
-      await widget.api.kitapGuncelle(
+      await widget.servis.kitapGuncelle(
         kitap.kitapId,
         kitap.kopyala(okunduMu: deger),
       );
       widget.veriDegisti();
       await _yukle();
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       _hatayiGoster(hata);
     }
   }
@@ -144,23 +138,19 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     if (!onay) return;
 
     try {
-      await widget.api.kitapSil(kitap.kitapId);
+      await widget.servis.kitapSil(kitap.kitapId);
       if (!mounted) return;
       bilgiGoster(context, 'Kitap silindi.');
       widget.veriDegisti();
       await _yukle();
-    } on ApiHatasi catch (hata) {
+    } on KutuphaneHatasi catch (hata) {
       _hatayiGoster(hata);
     }
   }
 
-  void _hatayiGoster(ApiHatasi hata) {
+  void _hatayiGoster(KutuphaneHatasi hata) {
     if (!mounted) return;
-    if (hata.oturumDustu) {
-      widget.oturumDustu();
-    } else {
-      bilgiGoster(context, hata.mesaj, hata: true);
-    }
+    bilgiGoster(context, hata.mesaj, hata: true);
   }
 
   @override

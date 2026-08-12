@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../modeller/modeller.dart';
-import '../servisler/api_servisi.dart';
+import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/ortak.dart';
 
 /// Kutuphanenin genel durumunu gosteren acilis sekmesi.
 class OzetSekmesi extends StatefulWidget {
   const OzetSekmesi({
     super.key,
-    required this.api,
+    required this.servis,
     required this.oturum,
-    required this.oturumDustu,
   });
 
-  final ApiServisi api;
+  final KutuphaneServisi servis;
   final Oturum oturum;
-  final VoidCallback oturumDustu;
 
   @override
   State<OzetSekmesi> createState() => _OzetSekmesiState();
@@ -27,10 +25,10 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
   @override
   void initState() {
     super.initState();
-    _ozet = widget.api.ozetGetir();
+    _ozet = widget.servis.ozetGetir();
   }
 
-  void _tazele() => setState(() => _ozet = widget.api.ozetGetir());
+  void _tazele() => setState(() => _ozet = widget.servis.ozetGetir());
 
   @override
   Widget build(BuildContext context) {
@@ -44,13 +42,7 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
         }
 
         if (durum.hasError) {
-          final hata = durum.error;
-          if (hata is ApiHatasi && hata.oturumDustu) {
-            WidgetsBinding.instance
-                .addPostFrameCallback((_) => widget.oturumDustu());
-            return const DurumGoruntusu.yukleniyor();
-          }
-          return DurumGoruntusu.hata('$hata', yenidenDene: _tazele);
+          return DurumGoruntusu.hata('${durum.error}', yenidenDene: _tazele);
         }
 
         final ozet = durum.data!;
