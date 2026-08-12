@@ -3,12 +3,39 @@ chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
-set API_EXE=backend\yayin\KutuphaneApi.exe
-set APP_EXE=app\build\windows\x64\runner\Release\BenimKutuphanem.exe
+rem ---------------------------------------------------------------------------
+rem  Iki yerlesim de desteklenir:
+rem    dagitim     : api\KutuphaneApi.exe      + uygulama\BenimKutuphanem.exe
+rem    gelistirme  : backend\yayin\...         + app\build\windows\x64\runner\Release\...
+rem  Once dagitim yerlesimine bakilir; boylece paketlenmis kopya kendi
+rem  klasorunden sorunsuz calisir.
+rem ---------------------------------------------------------------------------
+set "API_EXE="
+set "APP_EXE="
 
-if not exist "%API_EXE%" goto :derlenmemis
-if not exist "%APP_EXE%" goto :derlenmemis
+if exist "api\KutuphaneApi.exe"          set "API_EXE=api\KutuphaneApi.exe"
+if exist "uygulama\BenimKutuphanem.exe"  set "APP_EXE=uygulama\BenimKutuphanem.exe"
 
+if not defined API_EXE if exist "backend\yayin\KutuphaneApi.exe" set "API_EXE=backend\yayin\KutuphaneApi.exe"
+if not defined APP_EXE if exist "app\build\windows\x64\runner\Release\BenimKutuphanem.exe" set "APP_EXE=app\build\windows\x64\runner\Release\BenimKutuphanem.exe"
+
+if not defined API_EXE goto :derlenmemis
+if not defined APP_EXE goto :derlenmemis
+
+rem Flutter uygulamasi Visual C++ calisma zamanina ihtiyac duyar.
+if not exist "%SystemRoot%\System32\vcruntime140.dll" goto :vcuyari
+if not exist "%SystemRoot%\System32\msvcp140.dll"     goto :vcuyari
+goto :basla
+
+:vcuyari
+echo.
+echo UYARI: Visual C++ Runtime (vcruntime140.dll) bulunamadi.
+echo Uygulama acilmazsa "Microsoft Visual C++ Redistributable (x64)"
+echo paketini kurup tekrar deneyin.
+echo.
+pause
+
+:basla
 echo API baslatiliyor (http://127.0.0.1:5199)...
 start "KutuphaneApi" /min "%API_EXE%"
 
@@ -35,13 +62,22 @@ exit /b 0
 echo.
 echo HATA: API 20 saniyede yanit vermedi.
 echo  - SQL Server (SQLEXPRESS) servisi calisiyor mu?
-echo  - BenimKutuphanem veritabani kurulu mu? (sql\01_sema.sql ve sql\02_veri.sql)
+if exist "KUR.bat" (
+    echo  - Veritabani kurulu mu? Bir kereye mahsus KUR.bat calistirin.
+) else (
+    echo  - BenimKutuphanem veritabani kurulu mu? sql\00_veritabani_kur.bat
+)
 echo  - "KutuphaneApi" penceresindeki hata mesajina bakin.
 pause
 exit /b 1
 
 :derlenmemis
 echo.
-echo Once derleme yapilmali. Calistirin: derle.bat
+if exist "derle.bat" (
+    echo Once derleme yapilmali. Calistirin: derle.bat
+) else (
+    echo Paket eksik gorunuyor: api\ ve uygulama\ klasorleri bulunamadi.
+    echo ZIP dosyasini tamamen cikardiginizdan emin olun.
+)
 pause
 exit /b 1

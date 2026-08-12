@@ -9,6 +9,9 @@ app/build/
 app/.flutter-plugins-dependencies
 app/windows/flutter/ephemeral/
 
+# ---------------- Dagitim ----------------
+dagitim/
+
 # ---------------- Python ----------------
 __pycache__/
 *.pyc

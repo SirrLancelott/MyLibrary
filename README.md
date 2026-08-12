@@ -77,7 +77,43 @@ baslat.bat
 **Varsayılan kullanıcılar:** `admin / 1234` ve `emir / 1234`
 İlk girişten sonra uygulamadaki **Şifre** sekmesinden değiştirin.
 
-### 2.4 Uygulama kimliği
+> Bu ipucu giriş ekranında yalnızca **debug** derlemesinde gösterilir;
+> `--release` ile derlenen sürümde ekranda görünmez.
+
+### 2.4 Başka bir bilgisayara kurmak (dağıtım)
+
+```bat
+paketle.bat
+```
+
+Derleme araçları olmayan bir makinede çalışacak paket üretir:
+
+```
+dagitim/
+  BenimKutuphanem/          <- klasör
+    baslat.bat              günlük kullanım
+    KUR.bat                 veritabanı kurulumu (bir kez)
+    OKUBENI.txt             son kullanıcı rehberi
+    api/                    sunucu (.NET gömülü)
+    uygulama/               masaüstü uygulaması
+    sql/                    01_sema.sql, 02_veri.sql
+  BenimKutuphanem.zip       <- gönderilecek dosya (~61 MB)
+```
+
+API **self-contained** yayınlanır, yani .NET çalışma zamanı exe'nin yanına
+gömülür. Hedef makinede yalnızca şunlar gerekir:
+
+| Gereksinim | Not |
+|---|---|
+| SQL Server Express + `sqlcmd` | `KUR.bat` yokluğunda anlaşılır hata verir |
+| Visual C++ Redistributable (x64) | `baslat.bat` başlangıçta kontrol edip uyarır |
+
+Karşı tarafta sıra: ZIP'i tamamen çıkar → `KUR.bat` (bir kez) → `baslat.bat`.
+
+`baslat.bat` hem geliştirme (`backend\yayin\`, `app\build\...`) hem dağıtım
+(`api\`, `uygulama\`) yerleşimini tanır; iki ortamda da aynı dosya çalışır.
+
+### 2.5 Uygulama kimliği
 
 | | Değer |
 |---|---|
@@ -203,7 +239,11 @@ MyLibrary/
 │   └── 02_veri.sql             Excel verisi (otomatik üretilir)
 ├── tools/
 │   ├── excel_to_sql.py         Excel → 02_veri.sql
-│   └── dogrula.py              Excel ↔ SQL karşılaştırması
+│   ├── dogrula.py              Excel ↔ SQL karşılaştırması
+│   └── ikon_olustur.py         Uygulama ikonunu (.ico) üretir
+├── dagitim_sablonu/            Pakete kopyalanan son kullanıcı dosyaları
+│   ├── KUR.bat                 Hedef makinede veritabanı kurulumu
+│   └── OKUBENI.txt             Son kullanıcı rehberi
 ├── backend/KutuphaneApi/
 │   ├── Program.cs              Uç noktalar
 │   ├── Veri/KutuphaneDeposu.cs Parametreli SQL sorguları
@@ -215,9 +255,13 @@ MyLibrary/
 │   ├── servisler/api_servisi.dart
 │   ├── ekranlar/               Giriş, ana ekran, sekmeler
 │   └── widgetlar/              Diyaloglar ve ortak parçalar
-├── derle.bat
-└── baslat.bat
+├── derle.bat                   API + uygulama derlemesi
+├── paketle.bat                 Dağıtılabilir paket + ZIP üretir
+└── baslat.bat                  API + uygulamayı çalıştırır
 ```
+
+`dagitim/` klasörü `paketle.bat` tarafından üretilir ve sürüm denetimine
+girmez (`.gitignore`).
 
 ---
 

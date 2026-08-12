@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../servisler/api_servisi.dart';
@@ -219,14 +220,18 @@ class _GirisEkraniState extends State<GirisEkrani> {
                             label: Text(
                                 _yukleniyor ? 'Kontrol ediliyor…' : 'Giriş yap'),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Varsayılan kullanıcı:  admin / 1234',
-                            textAlign: TextAlign.center,
-                            style: tema.textTheme.bodySmall?.copyWith(
-                              color: tema.colorScheme.onSurfaceVariant,
+                          // Varsayilan sifre ipucu yalnizca gelistirme
+                          // derlemesinde gorunur; yayin surumunde gizlenir.
+                          if (kDebugMode) ...[
+                            const SizedBox(height: 20),
+                            Text(
+                              'Varsayılan kullanıcı:  admin / 1234',
+                              textAlign: TextAlign.center,
+                              style: tema.textTheme.bodySmall?.copyWith(
+                                color: tema.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

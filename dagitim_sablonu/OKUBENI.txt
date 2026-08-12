@@ -1,0 +1,122 @@
+================================================================
+  BENİM KÜTÜPHANEM
+  Kütüphane Otomasyon Sistemi
+================================================================
+
+Kişisel kitap koleksiyonunuzu ve almak istediğiniz kitapları
+yöneten Windows masaüstü uygulaması.
+
+
+----------------------------------------------------------------
+  KURULUM  (yalnızca ilk seferde)
+----------------------------------------------------------------
+
+1) ÖN KOŞUL: SQL Server Express
+
+   Bilgisayarınızda SQL Server Express kurulu olmalı.
+   Kurulu değilse Microsoft'un sitesinden ücretsiz indirebilirsiniz:
+   "SQL Server Express" + "Command Line Utilities (sqlcmd)"
+
+   Kurulum sırasında örnek adını SQLEXPRESS olarak bırakın.
+
+2) KUR.bat dosyasına çift tıklayın.
+
+   Veritabanını oluşturur ve kitap listesini yükler.
+   Bir dakikadan kısa sürer. Sonunda özet tablo görürsünüz.
+
+3) Bitti. Bundan sonra yalnızca baslat.bat kullanacaksınız.
+
+
+----------------------------------------------------------------
+  ÇALIŞTIRMA  (her seferinde)
+----------------------------------------------------------------
+
+baslat.bat dosyasına çift tıklayın.
+
+Ne olur:
+  - "KutuphaneApi" adlı küçük bir pencere açılır (sunucu).
+    Bu pencere uygulama açıkken kapatılmamalıdır.
+  - Ardından uygulama açılır.
+
+Giriş bilgileri:
+      admin / 1234
+      emir  / 1234
+
+>> İlk girişten sonra uygulamadaki "Şifre" sekmesinden
+   şifrenizi mutlaka değiştirin.
+
+Kapatırken: önce uygulamayı, sonra "KutuphaneApi" penceresini
+kapatın. Sunucu penceresi kendiliğinden kapanmaz.
+
+
+----------------------------------------------------------------
+  NELER YAPABİLİRSİNİZ
+----------------------------------------------------------------
+
+Özet          Kaç kitabınız var, kaçını okudunuz, toplam kaç
+              sayfa, istek listenizin tahmini maliyeti.
+
+Kitaplarım    Sahip olduğunuz kitaplar. Arama, türe göre ve
+              okundu durumuna göre filtreleme. Ekleme,
+              düzenleme, silme. Satırdaki anahtarla bir kitabı
+              anında "okudum" olarak işaretleyebilirsiniz.
+
+İstek Listem  Almak istedikleriniz; fiyat ve satış sitesiyle.
+              Türe göre gruplayabilirsiniz. Bir kitabı satın
+              alınca tek düğmeyle "Kitaplarım" listesine
+              taşıyabilirsiniz.
+
+Şifre         Şifre değiştirme.
+
+Yazar, yayınevi, tür ve site alanlarında listede olmayan bir
+değer yazabilirsiniz; sistem onu otomatik olarak ekler.
+
+Sağ üstteki simgeyle açık/koyu tema arasında geçiş yapılır.
+
+
+----------------------------------------------------------------
+  SORUN GİDERME
+----------------------------------------------------------------
+
+"Sunucuya ulaşılamadı"
+      API çalışmıyor. Uygulamayı kapatıp baslat.bat ile
+      yeniden açın. Sorun sürerse api\KutuphaneApi.exe
+      dosyasını elle çalıştırıp penceredeki hatayı okuyun.
+
+"Veritabanına erişilemedi"
+      SQL Server servisi durmuş olabilir. Başlat menüsünden
+      "Hizmetler" açıp MSSQL$SQLEXPRESS servisini başlatın.
+
+Uygulama hiç açılmıyor
+      Visual C++ Redistributable (x64) eksik olabilir.
+      Microsoft'un sitesinden kurup tekrar deneyin.
+
+KUR.bat "sqlcmd bulunamadı" diyor
+      SQL Server Command Line Utilities kurulu değil.
+      Kurduktan sonra pencereyi kapatıp tekrar açın.
+
+Şifremi unuttum
+      Veritabanına erişiminiz varsa dbo.Kullanicilar
+      tablosundaki SifreHash alanını sıfırlamanız gerekir.
+      Bu, teknik bilgi ister; projeyi size veren kişiye
+      danışın.
+
+
+----------------------------------------------------------------
+  KLASÖRDE NE VAR
+----------------------------------------------------------------
+
+  baslat.bat    Uygulamayı başlatır          <- günlük kullanım
+  KUR.bat       Veritabanını kurar           <- yalnızca ilk kez
+  OKUBENI.txt   Bu dosya
+  api\          Sunucu (arka planda çalışır)
+  uygulama\     Masaüstü uygulaması
+  sql\          Veritabanı betikleri
+
+api, uygulama ve sql klasörlerini taşımayın veya yeniden
+adlandırmayın; baslat.bat onları bu adlarla arıyor.
+
+
+================================================================
+  Emir Can Biçen
+================================================================
