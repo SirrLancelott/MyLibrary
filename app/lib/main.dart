@@ -17,7 +17,7 @@ class BenimKutuphanemUygulamasi extends StatefulWidget {
 }
 
 class _BenimKutuphanemUygulamasiState extends State<BenimKutuphanemUygulamasi> {
-  /// Tek bir API servisi tum ekranlarca paylasilir (token burada tutulur).
+  /// Tek bir API servisi tum ekranlarca paylasilir (tokenımız burada tutulur).
   final _api = ApiServisi();
   ThemeMode _temaModu = ThemeMode.light;
 
@@ -40,3 +40,6 @@ class _BenimKutuphanemUygulamasiState extends State<BenimKutuphanemUygulamasi> {
     );
   }
 }
+
+
+

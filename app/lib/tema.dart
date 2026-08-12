@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Uygulamanin renk ve tipografi ayarlari tek yerden yonetilir.
+/// Uygulamanin renk ve tipografi ayarlari tek yerden yönetimi.
 class Tema {
   Tema._();
 

@@ -64,7 +64,7 @@ derle.bat
 ```
 
 API'yi `backend\yayin\` klasörüne, masaüstü uygulamasını
-`app\build\windows\x64\runner\Release\` klasörüne derler.
+`app\build\windows\x64\runner\Release\BenimKutuphanem.exe` olarak derler.
 
 ### 2.3 Çalıştırma
 
@@ -76,6 +76,30 @@ baslat.bat
 
 **Varsayılan kullanıcılar:** `admin / 1234` ve `emir / 1234`
 İlk girişten sonra uygulamadaki **Şifre** sekmesinden değiştirin.
+
+### 2.4 Uygulama kimliği
+
+| | Değer |
+|---|---|
+| Çalıştırılabilir dosya | `BenimKutuphanem.exe` |
+| Pencere başlığı | Benim Kütüphanem |
+| Ürün adı / açıklama | Benim Kütüphanem — Kütüphane Otomasyon Sistemi |
+| İkon | Mavi degrade zeminde açık kitap, `app/windows/runner/resources/app_icon.ico` |
+
+İkon, uygulamanın giriş ekranındaki logoyla aynı Material simgesinden
+(`menu_book_rounded`) üretiliyor; böylece pencere başlığı, görev çubuğu ve
+uygulama içindeki logo birbiriyle tutarlı oluyor. Yeniden üretmek için:
+
+```bash
+python tools/ikon_olustur.py
+```
+
+Betik 16'dan 256 piksele kadar yedi boyutu tek `.ico` dosyasına gömüyor ve
+`tools/ikon_onizleme.png` dosyasına bir kontrol görüntüsü yazıyor. 32 piksel ve
+altındaki boyutlarda simge, küçükken okunabilir kalması için daha dolgun
+çiziliyor. İkon veya isim değiştirildikten sonra `flutter clean` yapıp yeniden
+derlemek gerekir; aksi hâlde Windows eski ikonu önbellekten göstermeye devam
+eder.
 
 ---
 

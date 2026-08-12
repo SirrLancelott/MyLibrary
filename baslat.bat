@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 set API_EXE=backend\yayin\KutuphaneApi.exe
-set APP_EXE=app\build\windows\x64\runner\Release\benim_kutuphanem.exe
+set APP_EXE=app\build\windows\x64\runner\Release\BenimKutuphanem.exe
 
 if not exist "%API_EXE%" goto :derlenmemis
 if not exist "%APP_EXE%" goto :derlenmemis

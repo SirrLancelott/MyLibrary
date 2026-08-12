@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.emircan" "\0"
-            VALUE "FileDescription", "benim_kutuphanem" "\0"
+            VALUE "CompanyName", "Emir Can Biçen" "\0"
+            VALUE "FileDescription", "Benim Kütüphanem - Kütüphane Otomasyon Sistemi" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "benim_kutuphanem" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.emircan. All rights reserved." "\0"
-            VALUE "OriginalFilename", "benim_kutuphanem.exe" "\0"
-            VALUE "ProductName", "benim_kutuphanem" "\0"
+            VALUE "InternalName", "BenimKutuphanem" "\0"
+            VALUE "LegalCopyright", "© 2026 Emir Can Biçen. Tüm hakları saklıdır." "\0"
+            VALUE "OriginalFilename", "BenimKutuphanem.exe" "\0"
+            VALUE "ProductName", "Benim Kütüphanem" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
