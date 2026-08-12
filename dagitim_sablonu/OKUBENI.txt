@@ -21,8 +21,9 @@ yöneten Windows masaüstü uygulaması.
 
 2) KUR.bat dosyasına çift tıklayın.
 
-   Veritabanını oluşturur ve kitap listesini yükler.
-   Bir dakikadan kısa sürer. Sonunda özet tablo görürsünüz.
+   Boş bir veritabanı oluşturur. Bir dakikadan kısa sürer.
+   Sonunda hepsi sıfır olan bir özet tablo görürsünüz —
+   bu normaldir, kütüphaneniz henüz boştur.
 
 3) Bitti. Bundan sonra yalnızca baslat.bat kullanacaksınız.
 
@@ -40,10 +41,13 @@ Ne olur:
 
 Giriş bilgileri:
       admin / 1234
-      emir  / 1234
 
 >> İlk girişten sonra uygulamadaki "Şifre" sekmesinden
    şifrenizi mutlaka değiştirin.
+
+İlk açılışta kütüphane boştur. "Kitaplarım" sekmesindeki
+"Kitap ekle" düğmesiyle kendi kitaplarınızı girmeye
+başlayabilirsiniz.
 
 Kapatırken: önce uygulamayı, sonra "KutuphaneApi" penceresini
 kapatın. Sunucu penceresi kendiliğinden kapanmaz.
