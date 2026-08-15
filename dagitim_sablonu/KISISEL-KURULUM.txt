@@ -1,0 +1,59 @@
+================================================================
+  BENİM KÜTÜPHANEM - KİŞİSEL KURULUM
+================================================================
+
+>> DİKKAT: Bu paket kendi kitap listenizi içerir.
+   Başkasına vermeyin. Başkasına verilecek boş sürüm için
+   paketle.bat ile üretilen paketi kullanın.
+
+
+----------------------------------------------------------------
+  YENİ BİLGİSAYARA KURULUM - 3 ADIM
+----------------------------------------------------------------
+
+  1) ZIP dosyasını bir klasöre TAMAMEN çıkarın.
+     (ZIP'in içinden çift tıklayarak çalıştırmayın.)
+
+  2) kur.bat dosyasına çift tıklayın.
+     Kitap listeniz bilgisayara yerleştirilir.
+     Bu adımı yalnızca bir kez yapmanız yeterlidir.
+
+  3) BenimKutuphanem.exe dosyasına çift tıklayın.
+
+Kullanıcı adı ve şifreniz eski bilgisayardakiyle aynıdır.
+
+
+----------------------------------------------------------------
+  KLASÖRDE NE VAR
+----------------------------------------------------------------
+
+  kur.bat               Kitap listenizi yerleştiren betik (1 kez)
+  veri\kutuphane.db     Kitap listenizin kopyası
+  BenimKutuphanem.exe   Uygulama
+  OKUBENI.txt           Uygulamanın tam kullanım kılavuzu
+
+Diğer dosyalar uygulamanın çalışması için gereklidir;
+taşımayın veya yeniden adlandırmayın.
+
+
+----------------------------------------------------------------
+  BİLİNMESİ GEREKENLER
+----------------------------------------------------------------
+
+Hedef bilgisayarda zaten bir kütüphane varsa kur.bat önce
+sorar, sonra eskisini şu klasöre yedekler:
+
+  %LOCALAPPDATA%\BenimKutuphanem\yedek-<tarih-saat>\
+
+Yani hiçbir veri kaybolmaz.
+
+kur.bat çalıştıktan sonra iki bilgisayar birbirinden bağımsız
+çalışır. Birinde eklediğiniz kitap diğerine geçmez; taşımak
+için paketi yeniden üretmeniz gerekir.
+
+Uygulama açıkken kur.bat çalışmaz; önce uygulamayı kapatın.
+
+
+================================================================
+  Emir Can Biçen
+================================================================

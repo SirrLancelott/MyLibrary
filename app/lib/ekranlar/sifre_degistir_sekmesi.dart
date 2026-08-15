@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 
 /// Giris yapmis kullanicinin kendi sifresini degistirdigi ekran.
 /// Sifre basariyla degisince sunucudaki oturum dusurulur ve
@@ -14,7 +15,9 @@ class SifreDegistirSekmesi extends StatefulWidget {
   });
 
   final KutuphaneServisi servis;
-  final ValueChanged<String> basarili;
+
+  /// Sifre degisince cagrilir; ana ekran oturumu kapatir.
+  final VoidCallback basarili;
 
   @override
   State<SifreDegistirSekmesi> createState() => _SifreDegistirSekmesiState();
@@ -42,12 +45,12 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
 
     setState(() => _yukleniyor = true);
     try {
-      final mesaj = await widget.servis.sifreDegistir(_mevcut.text, _yeni.text);
+      await widget.servis.sifreDegistir(_mevcut.text, _yeni.text);
       if (!mounted) return;
-      widget.basarili(mesaj);
+      widget.basarili();
     } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
-      bilgiGoster(context, hata.mesaj, hata: true);
+      bilgiGoster(context, Ceviri.of(context).hataMetni(hata), hata: true);
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
     }
@@ -56,6 +59,7 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
 
     return Center(
       child: SingleChildScrollView(
@@ -75,14 +79,15 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
                       children: [
                         Icon(Icons.password, color: tema.colorScheme.primary),
                         const SizedBox(width: 12),
-                        Text('Şifre değiştir',
-                            style: tema.textTheme.titleLarge),
+                        Text(
+                          ceviri.sifreDegistir,
+                          style: tema.textTheme.titleLarge,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Yeni şifre veritabanında PBKDF2 ile hash’lenerek '
-                      'saklanır; düz metin olarak hiçbir yerde tutulmaz.',
+                      ceviri.sifreHashAciklamasi,
                       style: tema.textTheme.bodySmall?.copyWith(
                         color: tema.colorScheme.onSurfaceVariant,
                       ),
@@ -91,12 +96,12 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
                     TextFormField(
                       controller: _mevcut,
                       obscureText: _gizli,
-                      decoration: const InputDecoration(
-                        labelText: 'Mevcut şifre',
-                        prefixIcon: Icon(Icons.lock_outline),
+                      decoration: InputDecoration(
+                        labelText: ceviri.mevcutSifre,
+                        prefixIcon: const Icon(Icons.lock_outline),
                       ),
                       validator: (deger) => (deger == null || deger.isEmpty)
-                          ? 'Mevcut şifrenizi girin'
+                          ? ceviri.mevcutSifreGirin
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -104,22 +109,24 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
                       controller: _yeni,
                       obscureText: _gizli,
                       decoration: InputDecoration(
-                        labelText: 'Yeni şifre',
+                        labelText: ceviri.yeniSifre,
                         prefixIcon: const Icon(Icons.lock_reset),
                         suffixIcon: IconButton(
-                          tooltip: _gizli ? 'Göster' : 'Gizle',
-                          icon: Icon(_gizli
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined),
+                          tooltip: _gizli ? ceviri.goster : ceviri.gizle,
+                          icon: Icon(
+                            _gizli
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
                           onPressed: () => setState(() => _gizli = !_gizli),
                         ),
                       ),
                       validator: (deger) {
                         if (deger == null || deger.length < 4) {
-                          return 'Yeni şifre en az 4 karakter olmalı';
+                          return ceviri.yeniSifreKisa;
                         }
                         if (deger == _mevcut.text) {
-                          return 'Yeni şifre eskisiyle aynı olamaz';
+                          return ceviri.yeniSifreAyni;
                         }
                         return null;
                       },
@@ -128,12 +135,12 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
                     TextFormField(
                       controller: _yeniTekrar,
                       obscureText: _gizli,
-                      decoration: const InputDecoration(
-                        labelText: 'Yeni şifre (tekrar)',
-                        prefixIcon: Icon(Icons.lock_reset),
+                      decoration: InputDecoration(
+                        labelText: ceviri.yeniSifreTekrar,
+                        prefixIcon: const Icon(Icons.lock_reset),
                       ),
                       validator: (deger) => deger != _yeni.text
-                          ? 'Şifreler eşleşmiyor'
+                          ? ceviri.sifrelerEslesmiyor
                           : null,
                       onFieldSubmitted: (_) => _kaydet(),
                     ),
@@ -148,12 +155,14 @@ class _SifreDegistirSekmesiState extends State<SifreDegistirSekmesi> {
                             )
                           : const Icon(Icons.save_outlined),
                       label: Text(
-                          _yukleniyor ? 'Kaydediliyor…' : 'Şifreyi güncelle'),
+                        _yukleniyor
+                            ? ceviri.kaydediliyor
+                            : ceviri.sifreyiGuncelle,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Şifre değiştikten sonra güvenlik gereği oturumunuz '
-                      'kapatılır ve yeni şifrenizle tekrar giriş yaparsınız.',
+                      ceviri.oturumKapanacakNotu,
                       textAlign: TextAlign.center,
                       style: tema.textTheme.bodySmall?.copyWith(
                         color: tema.colorScheme.onSurfaceVariant,

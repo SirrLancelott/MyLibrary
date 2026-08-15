@@ -6,6 +6,7 @@ import '../modeller/modeller.dart';
 import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/kitap_dialog.dart';
 import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 
 /// "Sahip olduklarim" listesi: arama, filtre, ekleme, duzenleme, silme.
 class KitaplarSekmesi extends StatefulWidget {
@@ -29,7 +30,9 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
   Timer? _aramaGecikmesi;
 
   List<Kitap>? _kitaplar;
-  String? _hata;
+
+  /// Metin degil hatanin kendisi tutulur: dil degisirse mesaj da degissin.
+  KutuphaneHatasi? _hata;
   bool _yukleniyor = true;
 
   String? _turFiltresi;
@@ -68,7 +71,7 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
       setState(() {
-        _hata = hata.mesaj;
+        _hata = hata;
         _yukleniyor = false;
       });
     }
@@ -89,7 +92,7 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     try {
       await widget.servis.kitapEkle(yeni);
       if (!mounted) return;
-      bilgiGoster(context, '“${yeni.ad}” kitaplığa eklendi.');
+      bilgiGoster(context, Ceviri.of(context).kitapEklendi(yeni.ad));
       widget.veriDegisti();
       await _yukle();
     } on KutuphaneHatasi catch (hata) {
@@ -108,7 +111,7 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
     try {
       await widget.servis.kitapGuncelle(kitap.kitapId, guncel);
       if (!mounted) return;
-      bilgiGoster(context, 'Kitap güncellendi.');
+      bilgiGoster(context, Ceviri.of(context).kitapGuncellendi);
       widget.veriDegisti();
       await _yukle();
     } on KutuphaneHatasi catch (hata) {
@@ -130,17 +133,18 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
   }
 
   Future<void> _kitapSil(Kitap kitap) async {
+    final ceviri = Ceviri.of(context);
     final onay = await onayIste(
       context,
-      baslik: 'Kitap silinsin mi?',
-      mesaj: '“${kitap.ad}” kitaplığından kalıcı olarak silinecek.',
+      baslik: ceviri.kitapSilinsinMi,
+      mesaj: ceviri.kitapSilmeUyarisi(kitap.ad),
     );
     if (!onay) return;
 
     try {
       await widget.servis.kitapSil(kitap.kitapId);
       if (!mounted) return;
-      bilgiGoster(context, 'Kitap silindi.');
+      bilgiGoster(context, ceviri.kitapSilindi);
       widget.veriDegisti();
       await _yukle();
     } on KutuphaneHatasi catch (hata) {
@@ -150,7 +154,7 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
 
   void _hatayiGoster(KutuphaneHatasi hata) {
     if (!mounted) return;
-    bilgiGoster(context, hata.mesaj, hata: true);
+    bilgiGoster(context, Ceviri.of(context).hataMetni(hata), hata: true);
   }
 
   @override
@@ -186,12 +190,13 @@ class _KitaplarSekmesiState extends State<KitaplarSekmesi> {
       return const DurumGoruntusu.yukleniyor();
     }
     if (_hata != null) {
-      return DurumGoruntusu.hata(_hata!, yenidenDene: _yukle);
+      return DurumGoruntusu.hata(
+        Ceviri.of(context).hataMetni(_hata!),
+        yenidenDene: _yukle,
+      );
     }
     if (_kitaplar!.isEmpty) {
-      return const DurumGoruntusu.bos(
-        'Bu filtrelerle eşleşen kitap yok.\nAramayı temizleyip tekrar deneyin.',
-      );
+      return DurumGoruntusu.bos(Ceviri.of(context).kitapBulunamadi);
     }
 
     return Column(
@@ -246,6 +251,8 @@ class _AracCubugu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ceviri = Ceviri.of(context);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Wrap(
@@ -259,7 +266,7 @@ class _AracCubugu extends StatelessWidget {
               controller: arama,
               onChanged: aramaDegisti,
               decoration: InputDecoration(
-                hintText: 'Kitap adı veya yazar ara…',
+                hintText: ceviri.kitapAraIpucu,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: arama.text.isEmpty
                     ? null
@@ -278,9 +285,9 @@ class _AracCubugu extends StatelessWidget {
             child: DropdownButtonFormField<String?>(
               initialValue: turFiltresi,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Tür'),
+              decoration: InputDecoration(labelText: ceviri.tur),
               items: [
-                const DropdownMenuItem(value: null, child: Text('Tümü')),
+                DropdownMenuItem(value: null, child: Text(ceviri.tumu)),
                 for (final tur in turler)
                   DropdownMenuItem(value: tur, child: Text(tur)),
               ],
@@ -288,17 +295,17 @@ class _AracCubugu extends StatelessWidget {
             ),
           ),
           SegmentedButton<bool?>(
-            segments: const [
-              ButtonSegment(value: null, label: Text('Hepsi')),
+            segments: [
+              ButtonSegment(value: null, label: Text(ceviri.hepsi)),
               ButtonSegment(
                 value: true,
-                label: Text('Okudum'),
-                icon: Icon(Icons.check, size: 16),
+                label: Text(ceviri.okudum),
+                icon: const Icon(Icons.check, size: 16),
               ),
               ButtonSegment(
                 value: false,
-                label: Text('Okumadım'),
-                icon: Icon(Icons.schedule, size: 16),
+                label: Text(ceviri.okumadim),
+                icon: const Icon(Icons.schedule, size: 16),
               ),
             ],
             selected: {okunduFiltresi},
@@ -308,18 +315,18 @@ class _AracCubugu extends StatelessWidget {
           if (adet != null)
             Chip(
               avatar: const Icon(Icons.filter_list, size: 16),
-              label: Text('$adet kayıt'),
+              label: Text(ceviri.kayitAdedi(adet!)),
             ),
           const SizedBox(width: 4),
           IconButton.filledTonal(
-            tooltip: 'Yenile',
+            tooltip: ceviri.yenile,
             onPressed: yenile,
             icon: const Icon(Icons.refresh),
           ),
           FilledButton.icon(
             onPressed: ekle,
             icon: const Icon(Icons.add),
-            label: const Text('Kitap ekle'),
+            label: Text(ceviri.kitapEkleDugmesi),
           ),
         ],
       ),
@@ -333,8 +340,9 @@ class _BaslikSatiri extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stil = Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        );
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    final ceviri = Ceviri.of(context);
 
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -342,13 +350,13 @@ class _BaslikSatiri extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 44, child: Text('#', style: stil)),
-          Expanded(flex: 4, child: Text('Kitap adı', style: stil)),
-          Expanded(flex: 3, child: Text('Yazar', style: stil)),
-          Expanded(flex: 3, child: Text('Yayınevi', style: stil)),
-          Expanded(flex: 2, child: Text('Tür', style: stil)),
-          SizedBox(width: 70, child: Text('Sayfa', style: stil)),
-          SizedBox(width: 96, child: Text('Okundu', style: stil)),
-          SizedBox(width: 96, child: Text('İşlem', style: stil)),
+          Expanded(flex: 4, child: Text(ceviri.sutunKitapAdi, style: stil)),
+          Expanded(flex: 3, child: Text(ceviri.sutunYazar, style: stil)),
+          Expanded(flex: 3, child: Text(ceviri.sutunYayinevi, style: stil)),
+          Expanded(flex: 2, child: Text(ceviri.tur, style: stil)),
+          SizedBox(width: 70, child: Text(ceviri.sutunSayfa, style: stil)),
+          SizedBox(width: 96, child: Text(ceviri.sutunOkundu, style: stil)),
+          SizedBox(width: 96, child: Text(ceviri.sutunIslem, style: stil)),
         ],
       ),
     );
@@ -373,6 +381,7 @@ class _KitapSatiri extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
     final soluk = tema.textTheme.bodyMedium?.copyWith(
       color: tema.colorScheme.onSurfaceVariant,
     );
@@ -384,10 +393,7 @@ class _KitapSatiri extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            SizedBox(
-              width: 44,
-              child: Text('${kitap.siraNo}', style: soluk),
-            ),
+            SizedBox(width: 44, child: Text('${kitap.siraNo}', style: soluk)),
             Expanded(
               flex: 4,
               child: Text(
@@ -398,13 +404,19 @@ class _KitapSatiri extends StatelessWidget {
             ),
             Expanded(
               flex: 3,
-              child: Text(kitap.yazar ?? '—',
-                  style: soluk, overflow: TextOverflow.ellipsis),
+              child: Text(
+                kitap.yazar ?? '—',
+                style: soluk,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             Expanded(
               flex: 3,
-              child: Text(kitap.yayinevi ?? '—',
-                  style: soluk, overflow: TextOverflow.ellipsis),
+              child: Text(
+                kitap.yayinevi ?? '—',
+                style: soluk,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             Expanded(
               flex: 2,
@@ -414,7 +426,9 @@ class _KitapSatiri extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: tema.colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(20),
@@ -434,30 +448,30 @@ class _KitapSatiri extends StatelessWidget {
               child: Text(
                 kitap.sayfaSayisi == null
                     ? '—'
-                    : sayiBicimi.format(kitap.sayfaSayisi),
+                    : ceviri.sayiBicimi.format(kitap.sayfaSayisi),
                 style: soluk,
               ),
             ),
             SizedBox(
               width: 96,
-              child: Switch(
-                value: kitap.okunduMu,
-                onChanged: okunduDegisti,
-              ),
+              child: Switch(value: kitap.okunduMu, onChanged: okunduDegisti),
             ),
             SizedBox(
               width: 96,
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: 'Düzenle',
+                    tooltip: ceviri.duzenle,
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: duzenle,
                   ),
                   IconButton(
-                    tooltip: 'Sil',
-                    icon: Icon(Icons.delete_outline,
-                        size: 20, color: tema.colorScheme.error),
+                    tooltip: ceviri.sil,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: tema.colorScheme.error,
+                    ),
                     onPressed: sil,
                   ),
                 ],

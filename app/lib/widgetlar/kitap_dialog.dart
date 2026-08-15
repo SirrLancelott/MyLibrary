@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../modeller/modeller.dart';
+import '../yerellestirme/ceviri.dart';
 import 'ortak.dart';
 
 /// Kitap ekleme / duzenleme penceresi.
@@ -16,11 +17,10 @@ class KitapDialog extends StatefulWidget {
     BuildContext context, {
     required Referanslar referanslar,
     Kitap? mevcut,
-  }) =>
-      showDialog<Kitap>(
-        context: context,
-        builder: (_) => KitapDialog(referanslar: referanslar, mevcut: mevcut),
-      );
+  }) => showDialog<Kitap>(
+    context: context,
+    builder: (_) => KitapDialog(referanslar: referanslar, mevcut: mevcut),
+  );
 
   @override
   State<KitapDialog> createState() => _KitapDialogState();
@@ -31,11 +31,13 @@ class _KitapDialogState extends State<KitapDialog> {
 
   late final _ad = TextEditingController(text: widget.mevcut?.ad ?? '');
   late final _yazar = TextEditingController(text: widget.mevcut?.yazar ?? '');
-  late final _yayinevi =
-      TextEditingController(text: widget.mevcut?.yayinevi ?? '');
+  late final _yayinevi = TextEditingController(
+    text: widget.mevcut?.yayinevi ?? '',
+  );
   late final _tur = TextEditingController(text: widget.mevcut?.tur ?? '');
   late final _sayfa = TextEditingController(
-      text: widget.mevcut?.sayfaSayisi?.toString() ?? '');
+    text: widget.mevcut?.sayfaSayisi?.toString() ?? '',
+  );
 
   late bool _okundu = widget.mevcut?.okunduMu ?? false;
 
@@ -76,8 +78,10 @@ class _KitapDialogState extends State<KitapDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final ceviri = Ceviri.of(context);
+
     return AlertDialog(
-      title: Text(_duzenlemeMi ? 'Kitabı düzenle' : 'Yeni kitap ekle'),
+      title: Text(_duzenlemeMi ? ceviri.kitabiDuzenle : ceviri.yeniKitapEkle),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -89,32 +93,32 @@ class _KitapDialogState extends State<KitapDialog> {
                 TextFormField(
                   controller: _ad,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Kitap adı *',
-                    prefixIcon: Icon(Icons.menu_book_outlined),
+                  decoration: InputDecoration(
+                    labelText: ceviri.kitapAdiZorunlu,
+                    prefixIcon: const Icon(Icons.menu_book_outlined),
                   ),
                   validator: (deger) => (deger == null || deger.trim().isEmpty)
-                      ? 'Kitap adı zorunludur'
+                      ? ceviri.kitapAdiGerekli
                       : null,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _yazar,
-                  etiket: 'Yazar',
+                  etiket: ceviri.sutunYazar,
                   oneriler: widget.referanslar.yazarlar,
                   simge: Icons.person_outline,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _yayinevi,
-                  etiket: 'Yayınevi',
+                  etiket: ceviri.sutunYayinevi,
                   oneriler: widget.referanslar.yayinevleri,
                   simge: Icons.apartment_outlined,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _tur,
-                  etiket: 'Tür',
+                  etiket: ceviri.tur,
                   oneriler: widget.referanslar.turler,
                   simge: Icons.category_outlined,
                 ),
@@ -123,15 +127,15 @@ class _KitapDialogState extends State<KitapDialog> {
                   controller: _sayfa,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Sayfa sayısı',
-                    prefixIcon: Icon(Icons.description_outlined),
+                  decoration: InputDecoration(
+                    labelText: ceviri.sayfaSayisi,
+                    prefixIcon: const Icon(Icons.description_outlined),
                   ),
                   validator: (deger) {
                     if (deger == null || deger.trim().isEmpty) return null;
                     final sayi = int.tryParse(deger.trim());
                     if (sayi == null || sayi <= 0) {
-                      return 'Sayfa sayısı 0’dan büyük olmalı';
+                      return ceviri.sayfaSayisiPozitif;
                     }
                     return null;
                   },
@@ -139,7 +143,7 @@ class _KitapDialogState extends State<KitapDialog> {
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Bu kitabı okudum'),
+                  title: Text(ceviri.buKitabiOkudum),
                   value: _okundu,
                   onChanged: (deger) => setState(() => _okundu = deger),
                 ),
@@ -147,11 +151,10 @@ class _KitapDialogState extends State<KitapDialog> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Yazar, yayınevi ve tür listede yoksa yazdığınız değer '
-                    'otomatik olarak eklenir.',
+                    ceviri.otomatikEklenirNotu,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -162,12 +165,12 @@ class _KitapDialogState extends State<KitapDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Vazgeç'),
+          child: Text(ceviri.vazgec),
         ),
         FilledButton.icon(
           onPressed: _kaydet,
           icon: const Icon(Icons.save_outlined),
-          label: Text(_duzenlemeMi ? 'Güncelle' : 'Ekle'),
+          label: Text(_duzenlemeMi ? ceviri.guncelle : ceviri.ekle),
         ),
       ],
     );

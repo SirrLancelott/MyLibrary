@@ -1,23 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-final paraBicimi = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2);
-final sayiBicimi = NumberFormat.decimalPattern('tr_TR');
-final tarihBicimi = DateFormat('dd.MM.yyyy HH:mm');
+import '../yerellestirme/ceviri.dart';
+
+/// Sag ustteki dil dugmesi. Uzerinde gecilecek dilin kisa adi yazar:
+/// Turkce arayuzde "EN", Ingilizce arayuzde "TR".
+class DilDugmesi extends StatelessWidget {
+  const DilDugmesi({super.key, required this.dilDegistir});
+
+  final VoidCallback dilDegistir;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
+    final hedef = ceviri.dil.digeri;
+
+    return Tooltip(
+      message: ceviri.dileGec(hedef),
+      child: TextButton(
+        onPressed: dilDegistir,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          foregroundColor: tema.colorScheme.primary,
+        ),
+        child: Text(
+          hedef.kisaAd,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ),
+    );
+  }
+}
 
 /// Yukleniyor / hata / bos durumlarini tek bicimde gosterir.
 class DurumGoruntusu extends StatelessWidget {
   const DurumGoruntusu.yukleniyor({super.key})
-      : _tur = _Tur.yukleniyor,
-        mesaj = null,
-        yenidenDene = null;
+    : _tur = _Tur.yukleniyor,
+      mesaj = null,
+      yenidenDene = null;
 
   const DurumGoruntusu.hata(this.mesaj, {super.key, this.yenidenDene})
-      : _tur = _Tur.hata;
+    : _tur = _Tur.hata;
 
   const DurumGoruntusu.bos(this.mesaj, {super.key})
-      : _tur = _Tur.bos,
-        yenidenDene = null;
+    : _tur = _Tur.bos,
+      yenidenDene = null;
 
   final _Tur _tur;
   final String? mesaj;
@@ -60,7 +88,7 @@ class DurumGoruntusu extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: yenidenDene,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Yeniden dene'),
+                label: Text(Ceviri.of(context).yenidenDene),
               ),
             ],
           ],
@@ -134,8 +162,10 @@ class IstatistikKutusu extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     deger,
-                    style: tema.textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.bold, color: vurgu),
+                    style: tema.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: vurgu,
+                    ),
                   ),
                 ),
               ),
@@ -246,31 +276,35 @@ void bilgiGoster(BuildContext context, String mesaj, {bool hata = false}) {
 }
 
 /// Evet / hayir onay penceresi.
+/// [onayla] verilmezse dugme "Sil" / "Delete" yazar.
 Future<bool> onayIste(
   BuildContext context, {
   required String baslik,
   required String mesaj,
-  String onayla = 'Sil',
+  String? onayla,
 }) async {
   final sonuc = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(baslik),
-      content: Text(mesaj),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Vazgeç'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.error,
+    builder: (context) {
+      final ceviri = Ceviri.of(context);
+      return AlertDialog(
+        title: Text(baslik),
+        content: Text(mesaj),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(ceviri.vazgec),
           ),
-          onPressed: () => Navigator.pop(context, true),
-          child: Text(onayla),
-        ),
-      ],
-    ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(onayla ?? ceviri.sil),
+          ),
+        ],
+      );
+    },
   );
   return sonuc ?? false;
 }

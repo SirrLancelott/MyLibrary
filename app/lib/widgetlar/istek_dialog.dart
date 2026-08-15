@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../modeller/modeller.dart';
+import '../yerellestirme/ceviri.dart';
 import 'ortak.dart';
 
 /// Istek listesi kaydi ekleme / duzenleme penceresi.
@@ -15,11 +16,10 @@ class IstekDialog extends StatefulWidget {
     BuildContext context, {
     required Referanslar referanslar,
     Istek? mevcut,
-  }) =>
-      showDialog<Istek>(
-        context: context,
-        builder: (_) => IstekDialog(referanslar: referanslar, mevcut: mevcut),
-      );
+  }) => showDialog<Istek>(
+    context: context,
+    builder: (_) => IstekDialog(referanslar: referanslar, mevcut: mevcut),
+  );
 
   @override
   State<IstekDialog> createState() => _IstekDialogState();
@@ -30,14 +30,17 @@ class _IstekDialogState extends State<IstekDialog> {
 
   late final _ad = TextEditingController(text: widget.mevcut?.ad ?? '');
   late final _yazar = TextEditingController(text: widget.mevcut?.yazar ?? '');
-  late final _yayinevi =
-      TextEditingController(text: widget.mevcut?.yayinevi ?? '');
+  late final _yayinevi = TextEditingController(
+    text: widget.mevcut?.yayinevi ?? '',
+  );
   late final _tur = TextEditingController(text: widget.mevcut?.tur ?? '');
   late final _site = TextEditingController(text: widget.mevcut?.site ?? '');
   late final _sayfa = TextEditingController(
-      text: widget.mevcut?.sayfaSayisi?.toString() ?? '');
+    text: widget.mevcut?.sayfaSayisi?.toString() ?? '',
+  );
   late final _fiyat = TextEditingController(
-      text: widget.mevcut?.fiyat?.toStringAsFixed(2).replaceAll('.', ',') ?? '');
+    text: widget.mevcut?.fiyat?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
+  );
 
   late bool _satinAlindi = widget.mevcut?.satinAlindi ?? false;
 
@@ -88,8 +91,12 @@ class _IstekDialogState extends State<IstekDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final ceviri = Ceviri.of(context);
+
     return AlertDialog(
-      title: Text(_duzenlemeMi ? 'İsteği düzenle' : 'İstek listesine ekle'),
+      title: Text(
+        _duzenlemeMi ? ceviri.istegiDuzenle : ceviri.istekListesineEkle,
+      ),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -101,39 +108,39 @@ class _IstekDialogState extends State<IstekDialog> {
                 TextFormField(
                   controller: _ad,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Kitap adı *',
-                    prefixIcon: Icon(Icons.menu_book_outlined),
+                  decoration: InputDecoration(
+                    labelText: ceviri.kitapAdiZorunlu,
+                    prefixIcon: const Icon(Icons.menu_book_outlined),
                   ),
                   validator: (deger) => (deger == null || deger.trim().isEmpty)
-                      ? 'Kitap adı zorunludur'
+                      ? ceviri.kitapAdiGerekli
                       : null,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _yazar,
-                  etiket: 'Yazar',
+                  etiket: ceviri.sutunYazar,
                   oneriler: widget.referanslar.yazarlar,
                   simge: Icons.person_outline,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _yayinevi,
-                  etiket: 'Yayınevi',
+                  etiket: ceviri.sutunYayinevi,
                   oneriler: widget.referanslar.yayinevleri,
                   simge: Icons.apartment_outlined,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _tur,
-                  etiket: 'Tür',
+                  etiket: ceviri.tur,
                   oneriler: widget.referanslar.turler,
                   simge: Icons.category_outlined,
                 ),
                 const SizedBox(height: 16),
                 OneriliAlan(
                   denetleyici: _site,
-                  etiket: 'Alınacak site',
+                  etiket: ceviri.alinacakSite,
                   oneriler: widget.referanslar.siteler,
                   simge: Icons.storefront_outlined,
                 ),
@@ -146,17 +153,19 @@ class _IstekDialogState extends State<IstekDialog> {
                         controller: _sayfa,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
-                        decoration: const InputDecoration(
-                          labelText: 'Sayfa sayısı',
-                          prefixIcon: Icon(Icons.description_outlined),
+                        decoration: InputDecoration(
+                          labelText: ceviri.sayfaSayisi,
+                          prefixIcon: const Icon(Icons.description_outlined),
                         ),
                         validator: (deger) {
-                          if (deger == null || deger.trim().isEmpty) return null;
+                          if (deger == null || deger.trim().isEmpty) {
+                            return null;
+                          }
                           final sayi = int.tryParse(deger.trim());
                           if (sayi == null || sayi <= 0) {
-                            return '0’dan büyük olmalı';
+                            return ceviri.sifirdanBuyuk;
                           }
                           return null;
                         },
@@ -170,15 +179,17 @@ class _IstekDialogState extends State<IstekDialog> {
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                         ],
-                        decoration: const InputDecoration(
-                          labelText: 'Fiyat (₺)',
-                          prefixIcon: Icon(Icons.payments_outlined),
+                        decoration: InputDecoration(
+                          labelText: ceviri.fiyat,
+                          prefixIcon: const Icon(Icons.payments_outlined),
                         ),
                         validator: (deger) {
-                          if (deger == null || deger.trim().isEmpty) return null;
+                          if (deger == null || deger.trim().isEmpty) {
+                            return null;
+                          }
                           final fiyat = _fiyatCoz(deger);
                           if (fiyat == null || fiyat < 0) {
-                            return 'Geçerli bir fiyat girin';
+                            return ceviri.gecerliFiyat;
                           }
                           return null;
                         },
@@ -189,9 +200,8 @@ class _IstekDialogState extends State<IstekDialog> {
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Satın alındı olarak işaretle'),
-                  subtitle: const Text(
-                      'İşaretli kayıtlar tahmini maliyete dahil edilmez.'),
+                  title: Text(ceviri.satinAlindiIsaretle),
+                  subtitle: Text(ceviri.satinAlindiAciklama),
                   value: _satinAlindi,
                   onChanged: (deger) => setState(() => _satinAlindi = deger),
                 ),
@@ -203,12 +213,12 @@ class _IstekDialogState extends State<IstekDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Vazgeç'),
+          child: Text(ceviri.vazgec),
         ),
         FilledButton.icon(
           onPressed: _kaydet,
           icon: const Icon(Icons.save_outlined),
-          label: Text(_duzenlemeMi ? 'Güncelle' : 'Ekle'),
+          label: Text(_duzenlemeMi ? ceviri.guncelle : ceviri.ekle),
         ),
       ],
     );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../modeller/modeller.dart';
 import '../servisler/kutuphane_servisi.dart';
+import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 import 'giris_ekrani.dart';
 import 'istekler_sekmesi.dart';
 import 'kitaplar_sekmesi.dart';
@@ -15,11 +17,13 @@ class AnaEkran extends StatefulWidget {
     required this.servis,
     required this.oturum,
     required this.temaDegistir,
+    required this.dilDegistir,
   });
 
   final KutuphaneServisi servis;
   final Oturum oturum;
   final VoidCallback temaDegistir;
+  final VoidCallback dilDegistir;
 
   @override
   State<AnaEkran> createState() => _AnaEkranState();
@@ -55,7 +59,7 @@ class _AnaEkranState extends State<AnaEkran> {
     _referanslariYukle();
   }
 
-  Future<void> _cikisYap({String? mesaj}) async {
+  Future<void> _cikisYap({bool sifreDegisti = false}) async {
     await widget.servis.cikisYap();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -63,7 +67,8 @@ class _AnaEkranState extends State<AnaEkran> {
         builder: (_) => GirisEkrani(
           servis: widget.servis,
           temaDegistir: widget.temaDegistir,
-          acilisMesaji: mesaj,
+          dilDegistir: widget.dilDegistir,
+          sifreDegisti: sifreDegisti,
           baslangicKullaniciAdi: widget.oturum.kullaniciAdi,
         ),
       ),
@@ -73,6 +78,7 @@ class _AnaEkranState extends State<AnaEkran> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
 
     final sayfalar = [
       OzetSekmesi(
@@ -92,7 +98,7 @@ class _AnaEkranState extends State<AnaEkran> {
       ),
       SifreDegistirSekmesi(
         servis: widget.servis,
-        basarili: (mesaj) => _cikisYap(mesaj: mesaj),
+        basarili: () => _cikisYap(sifreDegisti: true),
       ),
     ];
 
@@ -103,7 +109,7 @@ class _AnaEkranState extends State<AnaEkran> {
           children: [
             Icon(Icons.menu_book_rounded, color: tema.colorScheme.primary),
             const SizedBox(width: 12),
-            const Text('Benim Kütüphanem'),
+            Text(ceviri.uygulamaAdi),
           ],
         ),
         actions: [
@@ -128,13 +134,14 @@ class _AnaEkranState extends State<AnaEkran> {
               ],
             ),
           ),
+          DilDugmesi(dilDegistir: widget.dilDegistir),
           IconButton(
-            tooltip: 'Açık / koyu tema',
+            tooltip: ceviri.temaDegistir,
             onPressed: widget.temaDegistir,
             icon: const Icon(Icons.brightness_6_outlined),
           ),
           IconButton(
-            tooltip: 'Çıkış yap',
+            tooltip: ceviri.cikisYap,
             onPressed: () => _cikisYap(),
             icon: const Icon(Icons.logout),
           ),
@@ -147,26 +154,26 @@ class _AnaEkranState extends State<AnaEkran> {
             selectedIndex: _secili,
             onDestinationSelected: (i) => setState(() => _secili = i),
             labelType: NavigationRailLabelType.all,
-            destinations: const [
+            destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: Text('Özet'),
+                icon: const Icon(Icons.dashboard_outlined),
+                selectedIcon: const Icon(Icons.dashboard),
+                label: Text(ceviri.ozet),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.library_books_outlined),
-                selectedIcon: Icon(Icons.library_books),
-                label: Text('Kitaplarım'),
+                icon: const Icon(Icons.library_books_outlined),
+                selectedIcon: const Icon(Icons.library_books),
+                label: Text(ceviri.kitaplarim),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.shopping_cart_outlined),
-                selectedIcon: Icon(Icons.shopping_cart),
-                label: Text('İstek Listem'),
+                icon: const Icon(Icons.shopping_cart_outlined),
+                selectedIcon: const Icon(Icons.shopping_cart),
+                label: Text(ceviri.istekListem),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.password_outlined),
-                selectedIcon: Icon(Icons.password),
-                label: Text('Şifre'),
+                icon: const Icon(Icons.password_outlined),
+                selectedIcon: const Icon(Icons.password),
+                label: Text(ceviri.sifreSekmesi),
               ),
             ],
           ),

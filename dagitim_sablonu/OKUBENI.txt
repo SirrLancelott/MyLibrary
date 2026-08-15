@@ -74,6 +74,11 @@ yazarak "İSTANBUL" geçen kitapları bulabilirsiniz.
 
 Sağ üstteki simgeyle açık/koyu tema arasında geçiş yapılır.
 
+Yanındaki "EN" düğmesi arayüzü İngilizceye çevirir; İngilizceyken
+"TR" yazar ve Türkçeye döner. Kendi girdiğiniz kitap adları, yazar,
+tür ve yayınevi bilgileri çevrilmez, olduğu gibi kalır. Dil seçimi
+uygulama kapanınca sıfırlanır, Türkçe açılır.
+
 
 ----------------------------------------------------------------
   SORUN GİDERME

@@ -6,6 +6,7 @@ import '../modeller/modeller.dart';
 import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/istek_dialog.dart';
 import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 
 /// "Almak istediklerim" listesi.
 class IsteklerSekmesi extends StatefulWidget {
@@ -29,7 +30,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
   Timer? _aramaGecikmesi;
 
   List<Istek>? _istekler;
-  String? _hata;
+
+  /// Metin degil hatanin kendisi tutulur: dil degisirse mesaj da degissin.
+  KutuphaneHatasi? _hata;
   bool _yukleniyor = true;
   String? _turFiltresi;
   String? _siteFiltresi;
@@ -70,7 +73,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
     } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
       setState(() {
-        _hata = hata.mesaj;
+        _hata = hata;
         _yukleniyor = false;
       });
     }
@@ -81,7 +84,10 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
     _aramaGecikmesi = Timer(const Duration(milliseconds: 350), _yukle);
   }
 
-  Future<void> _islemSarmala(Future<void> Function() islem, String mesaj) async {
+  Future<void> _islemSarmala(
+    Future<void> Function() islem,
+    String mesaj,
+  ) async {
     try {
       await islem();
       if (!mounted) return;
@@ -90,48 +96,64 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
       await _yukle();
     } on KutuphaneHatasi catch (hata) {
       if (!mounted) return;
-      bilgiGoster(context, hata.mesaj, hata: true);
+      bilgiGoster(context, Ceviri.of(context).hataMetni(hata), hata: true);
     }
   }
 
   Future<void> _ekle() async {
-    final yeni = await IstekDialog.goster(context,
-        referanslar: widget.referanslar);
+    final ceviri = Ceviri.of(context);
+    final yeni = await IstekDialog.goster(
+      context,
+      referanslar: widget.referanslar,
+    );
     if (yeni == null) return;
     await _islemSarmala(
-        () => widget.servis.istekEkle(yeni), '“${yeni.ad}” istek listesine eklendi.');
+      () => widget.servis.istekEkle(yeni),
+      ceviri.istekEklendi(yeni.ad),
+    );
   }
 
   Future<void> _duzenle(Istek istek) async {
-    final guncel = await IstekDialog.goster(context,
-        referanslar: widget.referanslar, mevcut: istek);
+    final ceviri = Ceviri.of(context);
+    final guncel = await IstekDialog.goster(
+      context,
+      referanslar: widget.referanslar,
+      mevcut: istek,
+    );
     if (guncel == null) return;
     await _islemSarmala(
-        () => widget.servis.istekGuncelle(istek.istekId, guncel), 'Kayıt güncellendi.');
+      () => widget.servis.istekGuncelle(istek.istekId, guncel),
+      ceviri.kayitGuncellendi,
+    );
   }
 
   Future<void> _sil(Istek istek) async {
+    final ceviri = Ceviri.of(context);
     final onay = await onayIste(
       context,
-      baslik: 'Kayıt silinsin mi?',
-      mesaj: '“${istek.ad}” istek listesinden kalıcı olarak silinecek.',
+      baslik: ceviri.kayitSilinsinMi,
+      mesaj: ceviri.istekSilmeUyarisi(istek.ad),
     );
     if (!onay) return;
     await _islemSarmala(
-        () => widget.servis.istekSil(istek.istekId), 'Kayıt silindi.');
+      () => widget.servis.istekSil(istek.istekId),
+      ceviri.kayitSilindi,
+    );
   }
 
   Future<void> _kitapligaTasi(Istek istek) async {
+    final ceviri = Ceviri.of(context);
     final onay = await onayIste(
       context,
-      baslik: 'Kitaplığa taşınsın mı?',
-      mesaj: '“${istek.ad}” istek listesinden çıkarılıp "Kitaplarım" '
-          'listesine okunmadı olarak eklenecek.',
-      onayla: 'Taşı',
+      baslik: ceviri.kitapligaTasinsinMi,
+      mesaj: ceviri.tasimaUyarisi(istek.ad),
+      onayla: ceviri.tasi,
     );
     if (!onay) return;
-    await _islemSarmala(() => widget.servis.istegiKitapligaTasi(istek.istekId),
-        '“${istek.ad}” kitaplığa taşındı.');
+    await _islemSarmala(
+      () => widget.servis.istegiKitapligaTasi(istek.istekId),
+      ceviri.kitapligaTasindi(istek.ad),
+    );
   }
 
   double get _toplamTutar => (_istekler ?? [])
@@ -140,6 +162,8 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
 
   @override
   Widget build(BuildContext context) {
+    final ceviri = Ceviri.of(context);
+
     return Column(
       children: [
         Padding(
@@ -155,7 +179,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
                   controller: _arama,
                   onChanged: _aramaDegisti,
                   decoration: InputDecoration(
-                    hintText: 'Kitap adı veya yazar ara…',
+                    hintText: ceviri.kitapAraIpucu,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _arama.text.isEmpty
                         ? null
@@ -174,9 +198,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _turFiltresi,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Tür'),
+                  decoration: InputDecoration(labelText: ceviri.tur),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Tümü')),
+                    DropdownMenuItem(value: null, child: Text(ceviri.tumu)),
                     for (final tur in widget.referanslar.turler)
                       DropdownMenuItem(value: tur, child: Text(tur)),
                   ],
@@ -191,9 +215,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _siteFiltresi,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Alınacak site'),
+                  decoration: InputDecoration(labelText: ceviri.alinacakSite),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Tümü')),
+                    DropdownMenuItem(value: null, child: Text(ceviri.tumu)),
                     for (final site in widget.referanslar.siteler)
                       DropdownMenuItem(value: site, child: Text(site)),
                   ],
@@ -205,7 +229,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
               ),
               FilterChip(
                 avatar: const Icon(Icons.segment, size: 18),
-                label: const Text('Türe göre grupla'),
+                label: Text(ceviri.tureGoreGrupla),
                 selected: _turlereGoreGrupla,
                 onSelected: (deger) =>
                     setState(() => _turlereGoreGrupla = deger),
@@ -213,22 +237,22 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
               if (_istekler != null) ...[
                 Chip(
                   avatar: const Icon(Icons.filter_list, size: 16),
-                  label: Text('${_istekler!.length} kayıt'),
+                  label: Text(ceviri.kayitAdedi(_istekler!.length)),
                 ),
                 Chip(
                   avatar: const Icon(Icons.payments_outlined, size: 16),
-                  label: Text('Toplam ${paraBicimi.format(_toplamTutar)}'),
+                  label: Text(ceviri.toplamTutar(_toplamTutar)),
                 ),
               ],
               IconButton.filledTonal(
-                tooltip: 'Yenile',
+                tooltip: ceviri.yenile,
                 onPressed: _yukle,
                 icon: const Icon(Icons.refresh),
               ),
               FilledButton.icon(
                 onPressed: _ekle,
                 icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('İstek ekle'),
+                label: Text(ceviri.istekEkleDugmesi),
               ),
             ],
           ),
@@ -244,17 +268,23 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
       return const DurumGoruntusu.yukleniyor();
     }
     if (_hata != null) {
-      return DurumGoruntusu.hata(_hata!, yenidenDene: _yukle);
+      return DurumGoruntusu.hata(
+        Ceviri.of(context).hataMetni(_hata!),
+        yenidenDene: _yukle,
+      );
     }
     if (_istekler!.isEmpty) {
-      return const DurumGoruntusu.bos('Bu filtrelerle eşleşen kayıt yok.');
+      return DurumGoruntusu.bos(Ceviri.of(context).istekBulunamadi);
     }
 
     if (!_turlereGoreGrupla) {
       return _izgara(_istekler!, kaydirilabilir: true);
     }
 
-    final gruplar = _turlereGoreAyir(_istekler!);
+    final gruplar = _turlereGoreAyir(
+      _istekler!,
+      Ceviri.of(context).turBelirtilmemis,
+    );
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       itemCount: gruplar.length,
@@ -298,8 +328,11 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
   }
 
   /// Kayitlari ture gore ayirir; turu bos olanlar en sona konur.
-  static List<_TurGrubu> _turlereGoreAyir(List<Istek> kayitlar) {
-    const turuYok = 'Tür belirtilmemiş';
+  /// [turuYok] basligi cagirandan gelir, secili dile gore degisir.
+  static List<_TurGrubu> _turlereGoreAyir(
+    List<Istek> kayitlar,
+    String turuYok,
+  ) {
     final harita = <String, List<Istek>>{};
 
     for (final istek in kayitlar) {
@@ -346,10 +379,15 @@ class _GrupBasligi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
 
     return Row(
       children: [
-        Icon(Icons.category_outlined, size: 20, color: tema.colorScheme.primary),
+        Icon(
+          Icons.category_outlined,
+          size: 20,
+          color: tema.colorScheme.primary,
+        ),
         const SizedBox(width: 10),
         Text(
           grup.ad,
@@ -366,7 +404,7 @@ class _GrupBasligi extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '${grup.kayitlar.length} kitap • ${paraBicimi.format(grup.tutar)}',
+            ceviri.grupOzeti(grup.kayitlar.length, grup.tutar),
             style: tema.textTheme.labelSmall?.copyWith(
               color: tema.colorScheme.onSecondaryContainer,
             ),
@@ -395,8 +433,10 @@ class _IstekKarti extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    final soluk = tema.textTheme.bodySmall
-        ?.copyWith(color: tema.colorScheme.onSurfaceVariant);
+    final ceviri = Ceviri.of(context);
+    final soluk = tema.textTheme.bodySmall?.copyWith(
+      color: tema.colorScheme.onSurfaceVariant,
+    );
 
     return Card(
       child: InkWell(
@@ -415,26 +455,35 @@ class _IstekKarti extends StatelessWidget {
                       istek.ad,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: tema.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: tema.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   if (istek.satinAlindi)
                     Padding(
                       padding: const EdgeInsets.only(left: 8, right: 8),
-                      child: Icon(Icons.check_circle,
-                          size: 18, color: Colors.green.shade600),
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 18,
+                        color: Colors.green.shade600,
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(istek.yazar ?? 'Yazar belirtilmemiş',
-                  style: soluk, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                istek.yazar ?? ceviri.yazarBelirtilmemis,
+                style: soluk,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               Text(
                 [
                   if (istek.yayinevi != null) istek.yayinevi!,
                   if (istek.tur != null) istek.tur!,
-                  if (istek.sayfaSayisi != null) '${istek.sayfaSayisi} sayfa',
+                  if (istek.sayfaSayisi != null)
+                    ceviri.sayfaAdedi(istek.sayfaSayisi!),
                 ].join(' • '),
                 style: soluk,
                 maxLines: 1,
@@ -445,7 +494,7 @@ class _IstekKarti extends StatelessWidget {
                 children: [
                   if (istek.fiyat != null)
                     Text(
-                      paraBicimi.format(istek.fiyat),
+                      ceviri.paraBicimi.format(istek.fiyat),
                       style: tema.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: tema.colorScheme.primary,
@@ -456,7 +505,9 @@ class _IstekKarti extends StatelessWidget {
                     Flexible(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: tema.colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(20),
@@ -473,14 +524,17 @@ class _IstekKarti extends StatelessWidget {
                   ],
                   const Spacer(),
                   IconButton(
-                    tooltip: 'Kitaplığa taşı',
+                    tooltip: ceviri.kitapligaTasi,
                     icon: const Icon(Icons.move_down, size: 20),
                     onPressed: kitapligaTasi,
                   ),
                   IconButton(
-                    tooltip: 'Sil',
-                    icon: Icon(Icons.delete_outline,
-                        size: 20, color: tema.colorScheme.error),
+                    tooltip: ceviri.sil,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: tema.colorScheme.error,
+                    ),
                     onPressed: sil,
                   ),
                 ],

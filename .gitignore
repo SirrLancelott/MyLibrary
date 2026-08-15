@@ -11,6 +11,9 @@ app/windows/flutter/ephemeral/
 
 # ---------------- Dagitim ----------------
 dagitim/
+# Kisisel kitap listesini iceren paket - asla depoya girmemeli
+dagitim_kisisel/
+*.db
 
 # ---------------- Python ----------------
 __pycache__/

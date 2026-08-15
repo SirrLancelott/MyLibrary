@@ -4,11 +4,31 @@ import '../guvenlik/sifre_servisi.dart';
 import '../modeller/modeller.dart';
 import '../veritabani/veritabani.dart';
 
+/// Arayuzun ceviri icin kullandigi hata kimlikleri.
+/// Servis katmaninin BuildContext'i yoktur; metni secme isi
+/// yerellestirme/ceviri.dart dosyasina birakilir.
+enum HataKodu {
+  girisGerekli,
+  kimlikHatali,
+  kullaniciPasif,
+  kullaniciYok,
+  mevcutSifreHatali,
+  yeniSifreKisa,
+  yeniSifreAyni,
+  kitapAdiZorunlu,
+  kitapYok,
+  kayitYok,
+}
+
 /// Kullaniciya gosterilebilecek is hatalari bu tiple firlatilir.
+///
+/// [mesaj] Turkce varsayilan metindir; testler ve kodu verilmeyen hatalar
+/// bunu kullanir. Arayuz, metni [kod] uzerinden secili dile cevirir.
 class KutuphaneHatasi implements Exception {
-  KutuphaneHatasi(this.mesaj);
+  KutuphaneHatasi(this.mesaj, [this.kod]);
 
   final String mesaj;
+  final HataKodu? kod;
 
   @override
   String toString() => mesaj;
@@ -98,7 +118,7 @@ class KutuphaneServisi {
 
   void _oturumGerekli() {
     if (_kullaniciId == null) {
-      throw KutuphaneHatasi('Bu islem icin giris yapilmis olmalidir.');
+      throw KutuphaneHatasi('Bu işlem için giriş yapılmış olmalıdır.', HataKodu.girisGerekli);
     }
   }
 
@@ -115,15 +135,15 @@ class KutuphaneServisi {
     // Kullanici bulunamasa da ayni mesaj doner; hangi kullanici adlarinin
     // var oldugu disariya sizmaz.
     if (satirlar.isEmpty) {
-      throw KutuphaneHatasi('Kullanıcı adı veya şifre hatalı.');
+      throw KutuphaneHatasi('Kullanıcı adı veya şifre hatalı.', HataKodu.kimlikHatali);
     }
 
     final satir = satirlar.first;
     if (!SifreServisi.dogrula(sifre, satir['SifreHash'] as String)) {
-      throw KutuphaneHatasi('Kullanıcı adı veya şifre hatalı.');
+      throw KutuphaneHatasi('Kullanıcı adı veya şifre hatalı.', HataKodu.kimlikHatali);
     }
     if ((satir['Aktif'] as int) == 0) {
-      throw KutuphaneHatasi('Bu kullanıcı pasif durumda.');
+      throw KutuphaneHatasi('Bu kullanıcı pasif durumda.', HataKodu.kullaniciPasif);
     }
 
     final kullaniciId = satir['KullaniciId'] as int;
@@ -149,14 +169,14 @@ class KutuphaneServisi {
   Future<void> cikisYap() async => oturumuTemizle();
 
   /// Basarili olursa oturum kapatilir; yeniden giris gerekir.
-  Future<String> sifreDegistir(String mevcutSifre, String yeniSifre) async {
+  Future<void> sifreDegistir(String mevcutSifre, String yeniSifre) async {
     _oturumGerekli();
 
     if (yeniSifre.length < 4) {
-      throw KutuphaneHatasi('Yeni şifre en az 4 karakter olmalıdır.');
+      throw KutuphaneHatasi('Yeni şifre en az 4 karakter olmalıdır.', HataKodu.yeniSifreKisa);
     }
     if (yeniSifre == mevcutSifre) {
-      throw KutuphaneHatasi('Yeni şifre eskisiyle aynı olamaz.');
+      throw KutuphaneHatasi('Yeni şifre eskisiyle aynı olamaz.', HataKodu.yeniSifreAyni);
     }
 
     final satirlar = _vt.select(
@@ -164,10 +184,10 @@ class KutuphaneServisi {
       [_kullaniciId],
     );
     if (satirlar.isEmpty) {
-      throw KutuphaneHatasi('Kullanıcı bulunamadı.');
+      throw KutuphaneHatasi('Kullanıcı bulunamadı.', HataKodu.kullaniciYok);
     }
     if (!SifreServisi.dogrula(mevcutSifre, satirlar.first['SifreHash'] as String)) {
-      throw KutuphaneHatasi('Mevcut şifre hatalı.');
+      throw KutuphaneHatasi('Mevcut şifre hatalı.', HataKodu.mevcutSifreHatali);
     }
 
     _vt.execute(
@@ -177,7 +197,6 @@ class KutuphaneServisi {
     );
 
     oturumuTemizle();
-    return 'Şifre güncellendi. Lütfen yeni şifrenizle tekrar giriş yapın.';
   }
 
   // ----------------------------------------------------------------- Veri ---
@@ -243,7 +262,7 @@ class KutuphaneServisi {
   Future<Kitap> kitapEkle(Kitap kitap) async {
     _oturumGerekli();
     final ad = kitap.ad.trim();
-    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.');
+    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.', HataKodu.kitapAdiZorunlu);
 
     final yeniId = _islemde(() {
       final yazarId = _referansId('Yazarlar', 'AdSoyad', 'YazarId', kitap.yazar);
@@ -266,7 +285,7 @@ class KutuphaneServisi {
   Future<Kitap> kitapGuncelle(int kitapId, Kitap kitap) async {
     _oturumGerekli();
     final ad = kitap.ad.trim();
-    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.');
+    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.', HataKodu.kitapAdiZorunlu);
 
     final etkilenen = _islemde(() {
       final yazarId = _referansId('Yazarlar', 'AdSoyad', 'YazarId', kitap.yazar);
@@ -285,14 +304,14 @@ class KutuphaneServisi {
       return _vt.updatedRows;
     });
 
-    if (etkilenen == 0) throw KutuphaneHatasi('Kitap bulunamadı.');
+    if (etkilenen == 0) throw KutuphaneHatasi('Kitap bulunamadı.', HataKodu.kitapYok);
     return (await _kitapGetir(kitapId))!;
   }
 
   Future<void> kitapSil(int kitapId) async {
     _oturumGerekli();
     _vt.execute('DELETE FROM Kitaplar WHERE KitapId = ?;', [kitapId]);
-    if (_vt.updatedRows == 0) throw KutuphaneHatasi('Kitap bulunamadı.');
+    if (_vt.updatedRows == 0) throw KutuphaneHatasi('Kitap bulunamadı.', HataKodu.kitapYok);
   }
 
   // --------------------------------------------------------- Istek listesi ---
@@ -329,7 +348,7 @@ class KutuphaneServisi {
   Future<void> istekEkle(Istek istek) async {
     _oturumGerekli();
     final ad = istek.ad.trim();
-    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.');
+    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.', HataKodu.kitapAdiZorunlu);
 
     _islemde(() {
       final yazarId = _referansId('Yazarlar', 'AdSoyad', 'YazarId', istek.yazar);
@@ -354,7 +373,7 @@ class KutuphaneServisi {
   Future<void> istekGuncelle(int istekId, Istek istek) async {
     _oturumGerekli();
     final ad = istek.ad.trim();
-    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.');
+    if (ad.isEmpty) throw KutuphaneHatasi('Kitap adı zorunludur.', HataKodu.kitapAdiZorunlu);
 
     final etkilenen = _islemde(() {
       final yazarId = _referansId('Yazarlar', 'AdSoyad', 'YazarId', istek.yazar);
@@ -377,13 +396,13 @@ class KutuphaneServisi {
       return _vt.updatedRows;
     });
 
-    if (etkilenen == 0) throw KutuphaneHatasi('Kayıt bulunamadı.');
+    if (etkilenen == 0) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
   }
 
   Future<void> istekSil(int istekId) async {
     _oturumGerekli();
     _vt.execute('DELETE FROM IstekListesi WHERE IstekId = ?;', [istekId]);
-    if (_vt.updatedRows == 0) throw KutuphaneHatasi('Kayıt bulunamadı.');
+    if (_vt.updatedRows == 0) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
   }
 
   /// Istek listesindeki kaydi kitapliga tasir: ekleme ve silme
@@ -409,7 +428,7 @@ class KutuphaneServisi {
       return true;
     });
 
-    if (!tasindi) throw KutuphaneHatasi('Kayıt bulunamadı.');
+    if (!tasindi) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
   }
 
   // -------------------------------------------------------------- Referans ---

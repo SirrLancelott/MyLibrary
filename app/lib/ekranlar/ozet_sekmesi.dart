@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import '../modeller/modeller.dart';
 import '../servisler/kutuphane_servisi.dart';
 import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 
 /// Kutuphanenin genel durumunu gosteren acilis sekmesi.
 class OzetSekmesi extends StatefulWidget {
-  const OzetSekmesi({
-    super.key,
-    required this.servis,
-    required this.oturum,
-  });
+  const OzetSekmesi({super.key, required this.servis, required this.oturum});
 
   final KutuphaneServisi servis;
   final Oturum oturum;
@@ -33,6 +30,7 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
 
     return FutureBuilder<Ozet>(
       future: _ozet,
@@ -46,8 +44,9 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
         }
 
         final ozet = durum.data!;
-        final okumaOrani =
-            ozet.toplamKitap == 0 ? 0.0 : ozet.okunanKitap / ozet.toplamKitap;
+        final okumaOrani = ozet.toplamKitap == 0
+            ? 0.0
+            : ozet.okunanKitap / ozet.toplamKitap;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(28),
@@ -61,16 +60,16 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hoş geldin, ${widget.oturum.gorunenAd}',
-                          style: tema.textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          ceviri.hosGeldin(widget.oturum.gorunenAd),
+                          style: tema.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           widget.oturum.oncekiGiris == null
-                              ? 'Bu, ilk girişin. İyi okumalar!'
-                              : 'Son giriş: '
-                                  '${tarihBicimi.format(widget.oturum.oncekiGiris!)}',
+                              ? ceviri.ilkGiris
+                              : ceviri.sonGiris(widget.oturum.oncekiGiris!),
                           style: tema.textTheme.bodyMedium?.copyWith(
                             color: tema.colorScheme.onSurfaceVariant,
                           ),
@@ -79,7 +78,7 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                     ),
                   ),
                   IconButton.filledTonal(
-                    tooltip: 'Yenile',
+                    tooltip: ceviri.yenile,
                     onPressed: _tazele,
                     icon: const Icon(Icons.refresh),
                   ),
@@ -91,8 +90,8 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                   final sutun = kisit.maxWidth > 1100
                       ? 4
                       : kisit.maxWidth > 780
-                          ? 3
-                          : 2;
+                      ? 3
+                      : 2;
                   return GridView.count(
                     crossAxisCount: sutun,
                     shrinkWrap: true,
@@ -102,41 +101,41 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                     childAspectRatio: 1.85,
                     children: [
                       IstatistikKutusu(
-                        baslik: 'Sahip olduğum kitap',
-                        deger: sayiBicimi.format(ozet.toplamKitap),
+                        baslik: ceviri.sahipOlunanKitap,
+                        deger: ceviri.sayiBicimi.format(ozet.toplamKitap),
                         simge: Icons.library_books,
                       ),
                       IstatistikKutusu(
-                        baslik: 'Okuduğum',
-                        deger: sayiBicimi.format(ozet.okunanKitap),
+                        baslik: ceviri.okudugum,
+                        deger: ceviri.sayiBicimi.format(ozet.okunanKitap),
                         simge: Icons.check_circle,
                         renk: Colors.green.shade700,
-                        altBilgi: '%${(okumaOrani * 100).toStringAsFixed(0)}',
+                        altBilgi: ceviri.yuzde(okumaOrani),
                       ),
                       IstatistikKutusu(
-                        baslik: 'Okumadığım',
-                        deger: sayiBicimi.format(ozet.okunmayanKitap),
+                        baslik: ceviri.okumadigim,
+                        deger: ceviri.sayiBicimi.format(ozet.okunmayanKitap),
                         simge: Icons.schedule,
                         renk: Colors.orange.shade800,
                       ),
                       IstatistikKutusu(
-                        baslik: 'Toplam sayfa',
-                        deger: sayiBicimi.format(ozet.toplamSayfa),
+                        baslik: ceviri.toplamSayfa,
+                        deger: ceviri.sayiBicimi.format(ozet.toplamSayfa),
                         simge: Icons.description_outlined,
-                        altBilgi: 'Sayfa sayısı girilmiş kitaplar',
+                        altBilgi: ceviri.sayfaSayisiGirilmis,
                       ),
                       IstatistikKutusu(
-                        baslik: 'İstek listesi',
-                        deger: sayiBicimi.format(ozet.istekAdedi),
+                        baslik: ceviri.istekListesi,
+                        deger: ceviri.sayiBicimi.format(ozet.istekAdedi),
                         simge: Icons.shopping_cart,
                         renk: Colors.blueGrey.shade700,
                       ),
                       IstatistikKutusu(
-                        baslik: 'Tahmini maliyet',
-                        deger: paraBicimi.format(ozet.istekToplamTutar),
+                        baslik: ceviri.tahminiMaliyet,
+                        deger: ceviri.paraBicimi.format(ozet.istekToplamTutar),
                         simge: Icons.payments_outlined,
                         renk: tema.colorScheme.tertiary,
-                        altBilgi: 'Henüz alınmamış kitaplar',
+                        altBilgi: ceviri.henuzAlinmamis,
                       ),
                     ],
                   );
@@ -149,8 +148,10 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Okuma ilerlemesi',
-                          style: tema.textTheme.titleMedium),
+                      Text(
+                        ceviri.okumaIlerlemesi,
+                        style: tema.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 16),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
@@ -161,8 +162,11 @@ class _OzetSekmesiState extends State<OzetSekmesi> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '${ozet.toplamKitap} kitabın ${ozet.okunanKitap} tanesini '
-                        'okudun, ${ozet.okunmayanKitap} tanesi seni bekliyor.',
+                        ceviri.okumaOzeti(
+                          ozet.toplamKitap,
+                          ozet.okunanKitap,
+                          ozet.okunmayanKitap,
+                        ),
                         style: tema.textTheme.bodyMedium?.copyWith(
                           color: tema.colorScheme.onSurfaceVariant,
                         ),

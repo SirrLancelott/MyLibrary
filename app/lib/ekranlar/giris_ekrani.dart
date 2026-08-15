@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../servisler/kutuphane_servisi.dart';
+import '../widgetlar/ortak.dart';
+import '../yerellestirme/ceviri.dart';
 import 'ana_ekran.dart';
 
 /// Uygulamanin giris ekrani. Kullanici adi ve sifre veritabanindaki
@@ -11,15 +13,18 @@ class GirisEkrani extends StatefulWidget {
     super.key,
     required this.servis,
     required this.temaDegistir,
-    this.acilisMesaji,
+    required this.dilDegistir,
+    this.sifreDegisti = false,
     this.baslangicKullaniciAdi,
   });
 
   final KutuphaneServisi servis;
   final VoidCallback temaDegistir;
+  final VoidCallback dilDegistir;
 
-  /// Sifre degistirdikten sonra buraya donuldugunde gosterilecek bilgi.
-  final String? acilisMesaji;
+  /// Sifre degistirdikten sonra buraya donuldugunde bilgi kutusu cikar.
+  /// Metin degil bayrak tasinir ki dil degisince mesaj da cevrilsin.
+  final bool sifreDegisti;
   final String? baslangicKullaniciAdi;
 
   @override
@@ -28,21 +33,25 @@ class GirisEkrani extends StatefulWidget {
 
 class _GirisEkraniState extends State<GirisEkrani> {
   final _form = GlobalKey<FormState>();
-  late final _kullaniciAdi =
-      TextEditingController(text: widget.baslangicKullaniciAdi ?? '');
+  late final _kullaniciAdi = TextEditingController(
+    text: widget.baslangicKullaniciAdi ?? '',
+  );
   final _sifre = TextEditingController();
   final _sifreOdak = FocusNode();
 
   bool _yukleniyor = false;
   bool _sifreGizli = true;
-  String? _hata;
+
+  /// Metin degil hatanin kendisi tutulur: dil degisirse mesaj da degissin.
+  KutuphaneHatasi? _hata;
 
   @override
   void initState() {
     super.initState();
     if (widget.baslangicKullaniciAdi != null) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _sifreOdak.requestFocus());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _sifreOdak.requestFocus(),
+      );
     }
   }
 
@@ -74,12 +83,13 @@ class _GirisEkraniState extends State<GirisEkrani> {
             servis: widget.servis,
             oturum: oturum,
             temaDegistir: widget.temaDegistir,
+            dilDegistir: widget.dilDegistir,
           ),
         ),
       );
     } on KutuphaneHatasi catch (hata) {
       setState(() {
-        _hata = hata.mesaj;
+        _hata = hata;
         _sifre.clear();
       });
       _sifreOdak.requestFocus();
@@ -91,6 +101,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
 
     return Scaffold(
       body: Stack(
@@ -112,10 +123,16 @@ class _GirisEkraniState extends State<GirisEkrani> {
           Positioned(
             top: 12,
             right: 12,
-            child: IconButton(
-              tooltip: 'Açık / koyu tema',
-              onPressed: widget.temaDegistir,
-              icon: const Icon(Icons.brightness_6_outlined),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DilDugmesi(dilDegistir: widget.dilDegistir),
+                IconButton(
+                  tooltip: ceviri.temaDegistir,
+                  onPressed: widget.temaDegistir,
+                  icon: const Icon(Icons.brightness_6_outlined),
+                ),
+              ],
             ),
           ),
           Center(
@@ -139,23 +156,24 @@ class _GirisEkraniState extends State<GirisEkrani> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Benim Kütüphanem',
+                            ceviri.uygulamaAdi,
                             textAlign: TextAlign.center,
-                            style: tema.textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            style: tema.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Kütüphane Otomasyon Sistemi',
+                            ceviri.altBaslik,
                             textAlign: TextAlign.center,
                             style: tema.textTheme.bodyMedium?.copyWith(
                               color: tema.colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 28),
-                          if (widget.acilisMesaji != null) ...[
+                          if (widget.sifreDegisti) ...[
                             _BilgiKutusu(
-                              metin: widget.acilisMesaji!,
+                              metin: ceviri.sifreGuncellendiMesaji,
                               renk: tema.colorScheme.primary,
                               simge: Icons.check_circle_outline,
                             ),
@@ -165,14 +183,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
                             controller: _kullaniciAdi,
                             autofocus: widget.baslangicKullaniciAdi == null,
                             textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
-                              labelText: 'Kullanıcı adı',
-                              prefixIcon: Icon(Icons.person_outline),
+                            decoration: InputDecoration(
+                              labelText: ceviri.kullaniciAdi,
+                              prefixIcon: const Icon(Icons.person_outline),
                             ),
                             validator: (deger) =>
                                 (deger == null || deger.trim().isEmpty)
-                                    ? 'Kullanıcı adı giriniz'
-                                    : null,
+                                ? ceviri.kullaniciAdiGiriniz
+                                : null,
                             onFieldSubmitted: (_) => _sifreOdak.requestFocus(),
                           ),
                           const SizedBox(height: 16),
@@ -181,27 +199,31 @@ class _GirisEkraniState extends State<GirisEkrani> {
                             focusNode: _sifreOdak,
                             obscureText: _sifreGizli,
                             decoration: InputDecoration(
-                              labelText: 'Şifre',
+                              labelText: ceviri.sifre,
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
-                                tooltip: _sifreGizli ? 'Göster' : 'Gizle',
-                                icon: Icon(_sifreGizli
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined),
+                                tooltip: _sifreGizli
+                                    ? ceviri.goster
+                                    : ceviri.gizle,
+                                icon: Icon(
+                                  _sifreGizli
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
                                 onPressed: () =>
                                     setState(() => _sifreGizli = !_sifreGizli),
                               ),
                             ),
                             validator: (deger) =>
                                 (deger == null || deger.isEmpty)
-                                    ? 'Şifre giriniz'
-                                    : null,
+                                ? ceviri.sifreGiriniz
+                                : null,
                             onFieldSubmitted: (_) => _girisYap(),
                           ),
                           if (_hata != null) ...[
                             const SizedBox(height: 16),
                             _BilgiKutusu(
-                              metin: _hata!,
+                              metin: ceviri.hataMetni(_hata!),
                               renk: tema.colorScheme.error,
                               simge: Icons.error_outline,
                             ),
@@ -214,18 +236,22 @@ class _GirisEkraniState extends State<GirisEkrani> {
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                        strokeWidth: 2),
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Icon(Icons.login),
                             label: Text(
-                                _yukleniyor ? 'Kontrol ediliyor…' : 'Giriş yap'),
+                              _yukleniyor
+                                  ? ceviri.kontrolEdiliyor
+                                  : ceviri.girisYap,
+                            ),
                           ),
                           // Varsayilan sifre ipucu yalnizca gelistirme
                           // derlemesinde gorunur; yayin surumunde gizlenir.
                           if (kDebugMode) ...[
                             const SizedBox(height: 20),
                             Text(
-                              'Varsayılan kullanıcı:  admin / 1234',
+                              ceviri.varsayilanKullanici,
                               textAlign: TextAlign.center,
                               style: tema.textTheme.bodySmall?.copyWith(
                                 color: tema.colorScheme.onSurfaceVariant,
@@ -274,10 +300,9 @@ class _BilgiKutusu extends StatelessWidget {
           Expanded(
             child: Text(
               metin,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: renk),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: renk),
             ),
           ),
         ],
