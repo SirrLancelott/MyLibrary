@@ -31,7 +31,8 @@ echo.
 echo [3/4] Dosyalar kopyalaniyor...
 xcopy "%CIKTI%" "%PAKET%\" /E /I /Y /Q >nul
 if errorlevel 1 goto :hata
-copy /y "dagitim_sablonu\OKUBENI.txt" "%PAKET%\" >nul
+copy /y "dagitim_sablonu\OKUBENI.txt"   "%PAKET%\" >nul
+copy /y "dagitim_sablonu\README-EN.txt" "%PAKET%\" >nul
 
 rem Beklenen dosyalar yerinde mi
 if not exist "%PAKET%\BenimKutuphanem.exe"  goto :eksik
@@ -39,6 +40,7 @@ if not exist "%PAKET%\flutter_windows.dll"  goto :eksik
 if not exist "%PAKET%\sqlite3.dll"          goto :eksik
 if not exist "%PAKET%\data"                 goto :eksik
 if not exist "%PAKET%\OKUBENI.txt"          goto :eksik
+if not exist "%PAKET%\README-EN.txt"        goto :eksik
 
 rem Kisisel veri sizintisina karsi guvenlik kontrolu: uygulama bos
 rem veritabaniyla baslar, pakete hicbir .db dosyasi girmemelidir.

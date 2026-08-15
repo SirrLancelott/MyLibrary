@@ -111,6 +111,7 @@ Windows "bilinmeyen yayımcı" uyarısı veriyor
   sqlite3.dll           Veritabanı motoru
   data\                 Uygulama kaynakları
   OKUBENI.txt           Bu dosya
+  README-EN.txt         Bu rehberin İngilizcesi
 
 Dosyaları taşımayın veya yeniden adlandırmayın; exe
 yanındakileri arar. Tümünü birlikte kopyalayabilirsiniz —
