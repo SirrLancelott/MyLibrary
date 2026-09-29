@@ -39,9 +39,31 @@ class Veritabani {
   static void _hazirla(Database vt) {
     vt.execute('PRAGMA foreign_keys = ON;');
     vt.execute('PRAGMA journal_mode = WAL;');
+    _eskiSemayiGuncelle(vt);
     vt.execute(semaBetigi);
     _kucukHarfIsleviniEkle(vt);
     _yoneticiHesabiniGarantile(vt);
+  }
+
+  /// Onceki surumlerde olusturulmus veritabanlarini yeni semaya getirir.
+  /// semaBetigi yalnizca "IF NOT EXISTS" kullandigi icin var olan tabloya
+  /// sonradan eklenen sutunu kendisi eklemez; bu yuzden betikten once
+  /// calisir. Gorunum de yeni sutunu icermesi icin silinir, betik onu
+  /// yeniden olusturur.
+  static void _eskiSemayiGuncelle(Database vt) {
+    final sutunlar = vt
+        .select('PRAGMA table_info(IstekListesi);')
+        .map((s) => s['name'] as String)
+        .toSet();
+
+    // Tablo hic yoksa (yeni veritabani) betik onu zaten dogru kurar.
+    if (sutunlar.isEmpty || sutunlar.contains('Oncelik')) return;
+
+    vt.execute(
+      'ALTER TABLE IstekListesi ADD COLUMN Oncelik INTEGER '
+      'CHECK (Oncelik IS NULL OR Oncelik BETWEEN 1 AND $ilkOnSiniri);',
+    );
+    vt.execute('DROP VIEW IF EXISTS vw_IstekListesi;');
   }
 
   /// SQLite'in yerlesik lower() islevi yalnizca ASCII harfleri kucultur;

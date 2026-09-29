@@ -242,6 +242,105 @@ void main() {
     });
   });
 
+  group('Ilk 10', () {
+    Future<List<int>> idler(List<String> adlar) async {
+      for (final ad in adlar) {
+        await ornekIstek(ad: ad);
+      }
+      return [for (final i in await servis.istekleriGetir()) i.istekId];
+    }
+
+    Future<List<String>> ilkOnAdlari() async =>
+        [for (final i in await servis.ilkOnuGetir()) i.ad];
+
+    test('eklenenler sona gelir, sira 1den baslar', () async {
+      final id = await idler(['A', 'B', 'C']);
+      await servis.ilkOnaEkle(id[2]);
+      await servis.ilkOnaEkle(id[0]);
+
+      expect(await ilkOnAdlari(), ['C', 'A']);
+      final liste = await servis.istekleriGetir();
+      expect([for (final i in liste) i.oncelik], [2, null, 1]);
+    });
+
+    test('ayni kayit iki kez eklenmez', () async {
+      final id = await idler(['A']);
+      await servis.ilkOnaEkle(id[0]);
+      await servis.ilkOnaEkle(id[0]);
+      expect(await ilkOnAdlari(), ['A']);
+    });
+
+    test('en fazla 10 kayit alir', () async {
+      final id = await idler([for (var i = 1; i <= 11; i++) 'K$i']);
+      for (var i = 0; i < 10; i++) {
+        await servis.ilkOnaEkle(id[i]);
+      }
+      await expectLater(
+        servis.ilkOnaEkle(id[10]),
+        throwsA(isA<KutuphaneHatasi>()
+            .having((h) => h.kod, 'kod', HataKodu.ilkOnDolu)),
+      );
+      expect(await servis.ilkOnuGetir(), hasLength(10));
+    });
+
+    test('cikarilinca alttakiler yukari kayar', () async {
+      final id = await idler(['A', 'B', 'C']);
+      for (final i in id) {
+        await servis.ilkOnaEkle(i);
+      }
+      await servis.ilkOndanCikar(id[0]);
+
+      final liste = await servis.ilkOnuGetir();
+      expect([for (final i in liste) i.ad], ['B', 'C']);
+      expect([for (final i in liste) i.oncelik], [1, 2]);
+    });
+
+    test('yeniden siralama kaydedilir', () async {
+      final id = await idler(['A', 'B', 'C']);
+      for (final i in id) {
+        await servis.ilkOnaEkle(i);
+      }
+      await servis.ilkOnuSirala([id[2], id[0], id[1]]);
+      expect(await ilkOnAdlari(), ['C', 'A', 'B']);
+    });
+
+    test('eksik liste ile siralama reddedilir, sira bozulmaz', () async {
+      final id = await idler(['A', 'B']);
+      await servis.ilkOnaEkle(id[0]);
+      await servis.ilkOnaEkle(id[1]);
+
+      await expectLater(
+        servis.ilkOnuSirala([id[1]]),
+        throwsA(isA<KutuphaneHatasi>()),
+      );
+      expect(await ilkOnAdlari(), ['A', 'B']);
+    });
+
+    test('silinen ve kitapliga tasinan kayit listeden duser', () async {
+      final id = await idler(['A', 'B', 'C']);
+      for (final i in id) {
+        await servis.ilkOnaEkle(i);
+      }
+      await servis.istekSil(id[0]);
+      await servis.istegiKitapligaTasi(id[1]);
+
+      final liste = await servis.ilkOnuGetir();
+      expect([for (final i in liste) i.ad], ['C']);
+      expect(liste.single.oncelik, 1);
+    });
+
+    test('guncelleme sirayi degistirmez', () async {
+      final id = await idler(['A']);
+      await servis.ilkOnaEkle(id[0]);
+      final istek = (await servis.istekleriGetir()).single;
+      await servis.istekGuncelle(
+        istek.istekId,
+        Istek(istekId: 0, siraNo: 0, ad: 'A2', satinAlindi: true),
+      );
+      expect((await servis.ilkOnuGetir()).single.ad, 'A2');
+    });
+  });
+
   group('Ozet', () {
     test('sayilar dogru', () async {
       await ornekKitap(ad: 'A', sayfa: 100, okundu: true);

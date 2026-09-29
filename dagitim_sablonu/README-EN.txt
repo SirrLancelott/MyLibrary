@@ -85,12 +85,17 @@ My Books    The books you own. Search, filter by genre and by
 
 Wish List   Books you want to buy, with price and store. Can be
             grouped by genre. Once you buy one, a single button
-            moves it into "My Books".
+            moves it into "My Books". The star in a card's
+            corner adds your most wanted books to a "Top 10"
+            list; the "Top 10" button at the top opens it,
+            where you reorder by dragging or with the arrows.
 
 Password    Change your password.
 
 In the author, publisher, genre and store fields you can type a
 value that is not in the list; the application adds it for you.
+Type the start of a saved value and press Tab to complete it:
+"orh" + Tab -> "Orhan Pamuk".
 
 Search ignores Turkish upper/lower case differences: typing
 "istanbul" also finds books containing "İSTANBUL".

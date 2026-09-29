@@ -62,12 +62,18 @@ Kitaplarım    Sahip olduğunuz kitaplar. Arama, türe göre ve
 İstek Listem  Almak istedikleriniz; fiyat ve satış sitesiyle.
               Türe göre gruplayabilirsiniz. Bir kitabı satın
               alınca tek düğmeyle "Kitaplarım" listesine
-              taşıyabilirsiniz.
+              taşıyabilirsiniz. Kartın köşesindeki yıldızla
+              en çok istediğiniz kitapları "İlk 10" listesine
+              ekleyip çıkarabilir; üstteki "İlk 10" düğmesiyle
+              bu listeyi açıp sürükleyerek ya da oklarla
+              sıralayabilirsiniz.
 
 Şifre         Şifre değiştirme.
 
 Yazar, yayınevi, tür ve site alanlarında listede olmayan bir
 değer yazabilirsiniz; sistem onu otomatik olarak ekler.
+Kayıtlı bir değerin başını yazıp Tab tuşuna basarsanız gerisi
+tamamlanır: "orh" + Tab -> "Orhan Pamuk".
 
 Arama Türkçe büyük/küçük harf ayrımı yapmaz: "istanbul"
 yazarak "İSTANBUL" geçen kitapları bulabilirsiniz.

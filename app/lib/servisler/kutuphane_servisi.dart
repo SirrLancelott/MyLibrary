@@ -2,7 +2,11 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../guvenlik/sifre_servisi.dart';
 import '../modeller/modeller.dart';
+import '../veritabani/sema.dart' show ilkOnSiniri;
 import '../veritabani/veritabani.dart';
+
+// Arayuz "Ilk 10" sinirini veritabani katmanini import etmeden kullansin.
+export '../veritabani/sema.dart' show ilkOnSiniri;
 
 /// Arayuzun ceviri icin kullandigi hata kimlikleri.
 /// Servis katmaninin BuildContext'i yoktur; metni secme isi
@@ -18,6 +22,7 @@ enum HataKodu {
   kitapAdiZorunlu,
   kitapYok,
   kayitYok,
+  ilkOnDolu,
 }
 
 /// Kullaniciya gosterilebilecek is hatalari bu tiple firlatilir.
@@ -101,6 +106,7 @@ class KutuphaneServisi {
         site: _metin(s, 'Site'),
         fiyat: _kurustanTl(s['FiyatKurus']),
         satinAlindi: _mantik(s, 'SatinAlindi'),
+        oncelik: _tamSayi(s, 'Oncelik'),
       );
 
   /// Islemi tek transaction icinde yurutur; hata olursa geri alir.
@@ -316,6 +322,10 @@ class KutuphaneServisi {
 
   // --------------------------------------------------------- Istek listesi ---
 
+  static const _istekSutunlari =
+      'IstekId, SiraNo, Ad, Yazar, Yayinevi, Tur, SayfaSayisi, '
+      'Site, FiyatKurus, SatinAlindi, Oncelik';
+
   Future<List<Istek>> istekleriGetir({
     String? arama,
     String? tur,
@@ -327,8 +337,7 @@ class KutuphaneServisi {
 
     return _vt.select(
       '''
-      SELECT IstekId, SiraNo, Ad, Yazar, Yayinevi, Tur, SayfaSayisi,
-             Site, FiyatKurus, SatinAlindi
+      SELECT $_istekSutunlari
       FROM   vw_IstekListesi
       WHERE  (?1 IS NULL OR kucuk(Ad) LIKE ?1 OR kucuk(COALESCE(Yazar, '')) LIKE ?1)
         AND  (?2 IS NULL OR Tur = ?2)
@@ -401,8 +410,13 @@ class KutuphaneServisi {
 
   Future<void> istekSil(int istekId) async {
     _oturumGerekli();
-    _vt.execute('DELETE FROM IstekListesi WHERE IstekId = ?;', [istekId]);
-    if (_vt.updatedRows == 0) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
+    final silinen = _islemde(() {
+      _vt.execute('DELETE FROM IstekListesi WHERE IstekId = ?;', [istekId]);
+      final adet = _vt.updatedRows;
+      _ilkOnuSikistir();
+      return adet;
+    });
+    if (silinen == 0) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
   }
 
   /// Istek listesindeki kaydi kitapliga tasir: ekleme ve silme
@@ -425,10 +439,111 @@ class KutuphaneServisi {
       if (sonuc.isEmpty) return false;
 
       _vt.execute('DELETE FROM IstekListesi WHERE IstekId = ?;', [istekId]);
+      _ilkOnuSikistir();
       return true;
     });
 
     if (!tasindi) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
+  }
+
+  // ---------------------------------------------------------------- Ilk 10 ---
+
+  /// "Ilk 10" listesi, en cok istenenden baslayarak. Arama/filtre uygulanmaz:
+  /// siralama her zaman listenin tamami uzerinden yapilir.
+  Future<List<Istek>> ilkOnuGetir() async {
+    _oturumGerekli();
+    return _vt.select(
+      'SELECT $_istekSutunlari FROM vw_IstekListesi '
+      'WHERE Oncelik IS NOT NULL ORDER BY Oncelik;',
+    ).map(_istekOku).toList();
+  }
+
+  /// Kaydi "Ilk 10" listesinin sonuna ekler. Zaten listedeyse bir sey yapmaz.
+  Future<void> ilkOnaEkle(int istekId) async {
+    _oturumGerekli();
+
+    _islemde(() {
+      final satirlar = _vt.select(
+        'SELECT Oncelik FROM IstekListesi WHERE IstekId = ?;',
+        [istekId],
+      );
+      if (satirlar.isEmpty) {
+        throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
+      }
+      if (satirlar.first['Oncelik'] != null) return;
+
+      final adet = _vt.select(
+        'SELECT COUNT(*) AS adet FROM IstekListesi WHERE Oncelik IS NOT NULL;',
+      ).first['adet'] as int;
+      if (adet >= ilkOnSiniri) {
+        throw KutuphaneHatasi(
+          'İlk $ilkOnSiniri listesi dolu. Önce listeden bir kitap çıkarın.',
+          HataKodu.ilkOnDolu,
+        );
+      }
+
+      _vt.execute(
+        'UPDATE IstekListesi SET Oncelik = ? WHERE IstekId = ?;',
+        [adet + 1, istekId],
+      );
+    });
+  }
+
+  /// Kaydi "Ilk 10" listesinden cikarir; alttakiler birer basamak yukari kayar.
+  Future<void> ilkOndanCikar(int istekId) async {
+    _oturumGerekli();
+
+    final etkilenen = _islemde(() {
+      _vt.execute(
+        'UPDATE IstekListesi SET Oncelik = NULL WHERE IstekId = ?;',
+        [istekId],
+      );
+      final adet = _vt.updatedRows;
+      _ilkOnuSikistir();
+      return adet;
+    });
+
+    if (etkilenen == 0) throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
+  }
+
+  /// "Ilk 10" listesini verilen sirayla yeniden yazar. [istekIdleri] listede
+  /// olan kayitlarin tamamini icermelidir; eksik ya da fazla kayit gelirse
+  /// (ornegin baska bir pencerede liste degismisse) hicbir sey degismez.
+  Future<void> ilkOnuSirala(List<int> istekIdleri) async {
+    _oturumGerekli();
+
+    _islemde(() {
+      final mevcut = _ilkOnIdleri();
+      if (mevcut.length != istekIdleri.length ||
+          !mevcut.toSet().containsAll(istekIdleri)) {
+        throw KutuphaneHatasi('Kayıt bulunamadı.', HataKodu.kayitYok);
+      }
+      _ilkOnuYaz(istekIdleri);
+    });
+  }
+
+  List<int> _ilkOnIdleri() => _vt
+      .select(
+        'SELECT IstekId FROM IstekListesi '
+        'WHERE Oncelik IS NOT NULL ORDER BY Oncelik;',
+      )
+      .map((s) => s['IstekId'] as int)
+      .toList();
+
+  /// Silme/cikarma sonrasi olusan bosluklari kapatir: 1, 2, 4 -> 1, 2, 3.
+  void _ilkOnuSikistir() => _ilkOnuYaz(_ilkOnIdleri());
+
+  /// Oncelik sutununda benzersizlik kisiti oldugu icin once hepsi
+  /// bosaltilir, sonra 1'den itibaren sirayla yazilir.
+  /// Cagiran bir transaction icinde olmalidir.
+  void _ilkOnuYaz(List<int> istekIdleri) {
+    _vt.execute('UPDATE IstekListesi SET Oncelik = NULL WHERE Oncelik IS NOT NULL;');
+    for (var i = 0; i < istekIdleri.length; i++) {
+      _vt.execute(
+        'UPDATE IstekListesi SET Oncelik = ? WHERE IstekId = ?;',
+        [i + 1, istekIdleri[i]],
+      );
+    }
   }
 
   // -------------------------------------------------------------- Referans ---

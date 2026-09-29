@@ -31,6 +31,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
 
   List<Istek>? _istekler;
 
+  /// "Ilk 10" listesi, siraya gore. Filtrelerden etkilenmez.
+  List<Istek> _ilkOn = const [];
+
   /// Metin degil hatanin kendisi tutulur: dil degisirse mesaj da degissin.
   KutuphaneHatasi? _hata;
   bool _yukleniyor = true;
@@ -39,6 +42,9 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
 
   /// Kartlari ture gore basliklar altinda toplar.
   bool _turlereGoreGrupla = false;
+
+  /// Izgara yerine siralanabilir "Ilk 10" listesini gosterir.
+  bool _ilkOnGorunumu = false;
 
   @override
   void initState() {
@@ -65,9 +71,11 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
         tur: _turFiltresi,
         site: _siteFiltresi,
       );
+      final ilkOn = await widget.servis.ilkOnuGetir();
       if (!mounted) return;
       setState(() {
         _istekler = gelen;
+        _ilkOn = ilkOn;
         _yukleniyor = false;
       });
     } on KutuphaneHatasi catch (hata) {
@@ -156,6 +164,40 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
     );
   }
 
+  Future<void> _ilkOnDegistir(Istek istek) async {
+    final ceviri = Ceviri.of(context);
+    if (istek.ilkOndaMi) {
+      await _islemSarmala(
+        () => widget.servis.ilkOndanCikar(istek.istekId),
+        ceviri.ilkOndanCikarildi(istek.ad),
+      );
+    } else {
+      await _islemSarmala(
+        () => widget.servis.ilkOnaEkle(istek.istekId),
+        ceviri.ilkOnaEklendi(istek.ad),
+      );
+    }
+  }
+
+  /// Ogeyi [eskiSira]dan alip [yeniSira]ya koyar (ikisi de 0'dan baslar;
+  /// yeniSira, oge listeden cikarildiktan sonraki konumdur).
+  Future<void> _ilkOnuYenidenSirala(int eskiSira, int yeniSira) async {
+    if (yeniSira == eskiSira) return;
+
+    // Surukleme bittigi anda yeni sira gorunsun; veritabani ardindan yazilir.
+    final liste = [..._ilkOn];
+    liste.insert(yeniSira, liste.removeAt(eskiSira));
+    setState(() => _ilkOn = liste);
+
+    try {
+      await widget.servis.ilkOnuSirala([for (final i in liste) i.istekId]);
+    } on KutuphaneHatasi catch (hata) {
+      if (!mounted) return;
+      bilgiGoster(context, Ceviri.of(context).hataMetni(hata), hata: true);
+    }
+    if (mounted) await _yukle();
+  }
+
   double get _toplamTutar => (_istekler ?? [])
       .where((i) => !i.satinAlindi)
       .fold(0.0, (toplam, i) => toplam + (i.fiyat ?? 0));
@@ -228,12 +270,19 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
                 ),
               ),
               FilterChip(
-                avatar: const Icon(Icons.segment, size: 18),
-                label: Text(ceviri.tureGoreGrupla),
-                selected: _turlereGoreGrupla,
-                onSelected: (deger) =>
-                    setState(() => _turlereGoreGrupla = deger),
+                avatar: const Icon(Icons.star_outline, size: 18),
+                label: Text('${ceviri.ilkOn} (${_ilkOn.length})'),
+                selected: _ilkOnGorunumu,
+                onSelected: (deger) => setState(() => _ilkOnGorunumu = deger),
               ),
+              if (!_ilkOnGorunumu)
+                FilterChip(
+                  avatar: const Icon(Icons.segment, size: 18),
+                  label: Text(ceviri.tureGoreGrupla),
+                  selected: _turlereGoreGrupla,
+                  onSelected: (deger) =>
+                      setState(() => _turlereGoreGrupla = deger),
+                ),
               if (_istekler != null) ...[
                 Chip(
                   avatar: const Icon(Icons.filter_list, size: 16),
@@ -273,6 +322,7 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
         yenidenDene: _yukle,
       );
     }
+    if (_ilkOnGorunumu) return _ilkOnListesi();
     if (_istekler!.isEmpty) {
       return DurumGoruntusu.bos(Ceviri.of(context).istekBulunamadi);
     }
@@ -322,8 +372,61 @@ class _IsteklerSekmesiState extends State<IsteklerSekmesi> {
           duzenle: () => _duzenle(istek),
           sil: () => _sil(istek),
           kitapligaTasi: () => _kitapligaTasi(istek),
+          ilkOnDegistir: () => _ilkOnDegistir(istek),
         );
       },
+    );
+  }
+
+  Widget _ilkOnListesi() {
+    final ceviri = Ceviri.of(context);
+    final tema = Theme.of(context);
+
+    if (_ilkOn.isEmpty) return DurumGoruntusu.bos(ceviri.ilkOnBos);
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Text(
+                ceviri.ilkOnDoluluk(_ilkOn.length, ilkOnSiniri),
+                style: tema.textTheme.bodySmall?.copyWith(
+                  color: tema.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ReorderableListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                buildDefaultDragHandles: false,
+                itemCount: _ilkOn.length,
+                onReorderItem: _ilkOnuYenidenSirala,
+                itemBuilder: (context, sira) {
+                  final istek = _ilkOn[sira];
+                  return _IlkOnSatiri(
+                    key: ValueKey(istek.istekId),
+                    sira: sira,
+                    istek: istek,
+                    yukari: sira == 0
+                        ? null
+                        : () => _ilkOnuYenidenSirala(sira, sira - 1),
+                    asagi: sira == _ilkOn.length - 1
+                        ? null
+                        : () => _ilkOnuYenidenSirala(sira, sira + 1),
+                    cikar: () => _ilkOnDegistir(istek),
+                    duzenle: () => _duzenle(istek),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -423,12 +526,14 @@ class _IstekKarti extends StatelessWidget {
     required this.duzenle,
     required this.sil,
     required this.kitapligaTasi,
+    required this.ilkOnDegistir,
   });
 
   final Istek istek;
   final VoidCallback duzenle;
   final VoidCallback sil;
   final VoidCallback kitapligaTasi;
+  final VoidCallback ilkOnDegistir;
 
   @override
   Widget build(BuildContext context) {
@@ -450,6 +555,11 @@ class _IstekKarti extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (istek.oncelik != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _SiraRozeti(sira: istek.oncelik!, kucuk: true),
+                    ),
                   Expanded(
                     child: Text(
                       istek.ad,
@@ -462,13 +572,32 @@ class _IstekKarti extends StatelessWidget {
                   ),
                   if (istek.satinAlindi)
                     Padding(
-                      padding: const EdgeInsets.only(left: 8, right: 8),
+                      padding: const EdgeInsets.only(left: 8),
                       child: Icon(
                         Icons.check_circle,
                         size: 18,
                         color: Colors.green.shade600,
                       ),
                     ),
+                  // Alt satirdaki fiyat ve site etiketine yer kalsin diye
+                  // yildiz basligin yaninda, kucuk boyutta durur.
+                  IconButton(
+                    tooltip: istek.ilkOndaMi
+                        ? ceviri.ilkOndanCikar
+                        : ceviri.ilkOnaEkle,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 24,
+                    ),
+                    icon: Icon(
+                      istek.ilkOndaMi ? Icons.star : Icons.star_border,
+                      size: 20,
+                      color: istek.ilkOndaMi ? Colors.amber.shade700 : null,
+                    ),
+                    onPressed: ilkOnDegistir,
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -540,6 +669,160 @@ class _IstekKarti extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Ilk 10" sira numarasi. Ilk uc sira ana renkle vurgulanir.
+class _SiraRozeti extends StatelessWidget {
+  const _SiraRozeti({required this.sira, this.kucuk = false});
+
+  /// 1'den baslar.
+  final int sira;
+  final bool kucuk;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final ustSira = sira <= 3;
+    final boyut = kucuk ? 22.0 : 32.0;
+
+    return Container(
+      width: boyut,
+      height: boyut,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: ustSira
+            ? tema.colorScheme.primary
+            : tema.colorScheme.secondaryContainer,
+      ),
+      child: Text(
+        '$sira',
+        style: (kucuk ? tema.textTheme.labelSmall : tema.textTheme.titleSmall)
+            ?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: ustSira
+                  ? tema.colorScheme.onPrimary
+                  : tema.colorScheme.onSecondaryContainer,
+            ),
+      ),
+    );
+  }
+}
+
+/// "Ilk 10" gorunumundeki tek satir: tutamak, sira, kitap bilgisi ve
+/// yukari / asagi / cikar dugmeleri. Tutamaktan surukleyerek de siralanir.
+class _IlkOnSatiri extends StatelessWidget {
+  const _IlkOnSatiri({
+    super.key,
+    required this.sira,
+    required this.istek,
+    required this.yukari,
+    required this.asagi,
+    required this.cikar,
+    required this.duzenle,
+  });
+
+  /// 0'dan baslar (ReorderableListView konumu).
+  final int sira;
+  final Istek istek;
+  final VoidCallback? yukari;
+  final VoidCallback? asagi;
+  final VoidCallback cikar;
+  final VoidCallback duzenle;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final ceviri = Ceviri.of(context);
+    final soluk = tema.textTheme.bodySmall?.copyWith(
+      color: tema.colorScheme.onSurfaceVariant,
+    );
+
+    final ayrinti = [
+      istek.yazar ?? ceviri.yazarBelirtilmemis,
+      if (istek.fiyat != null) ceviri.paraBicimi.format(istek.fiyat),
+      if (istek.site != null) istek.site!,
+    ].join(' • ');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          onTap: duzenle,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
+            child: Row(
+              children: [
+                ReorderableDragStartListener(
+                  index: sira,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.grab,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.drag_indicator,
+                        color: tema.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+                _SiraRozeti(sira: sira + 1),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        istek.ad,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tema.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        ayrinti,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: soluk,
+                      ),
+                    ],
+                  ),
+                ),
+                if (istek.satinAlindi)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      Icons.check_circle,
+                      size: 18,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                IconButton(
+                  tooltip: ceviri.yukariTasi,
+                  icon: const Icon(Icons.arrow_upward, size: 20),
+                  onPressed: yukari,
+                ),
+                IconButton(
+                  tooltip: ceviri.asagiTasi,
+                  icon: const Icon(Icons.arrow_downward, size: 20),
+                  onPressed: asagi,
+                ),
+                IconButton(
+                  tooltip: ceviri.ilkOndanCikar,
+                  icon: Icon(Icons.star, size: 20, color: Colors.amber.shade700),
+                  onPressed: cikar,
+                ),
+              ],
+            ),
           ),
         ),
       ),

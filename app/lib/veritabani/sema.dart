@@ -13,6 +13,9 @@
 /// Boylece T-SQL surumundeki DECIMAL(10,2) hassasiyeti korunur.
 library;
 
+/// "Ilk 10" listesine en fazla kac kitap konabilir.
+const int ilkOnSiniri = 10;
+
 const String semaBetigi = '''
 PRAGMA foreign_keys = ON;
 
@@ -79,11 +82,15 @@ CREATE TABLE IF NOT EXISTS IstekListesi (
     SiteId        INTEGER REFERENCES SatisSiteleri(SiteId),
     FiyatKurus    INTEGER CHECK (FiyatKurus IS NULL OR FiyatKurus >= 0),
     SatinAlindi   INTEGER NOT NULL DEFAULT 0,
-    EklenmeTarihi TEXT    NOT NULL DEFAULT (datetime('now'))
+    EklenmeTarihi TEXT    NOT NULL DEFAULT (datetime('now')),
+    -- "Ilk 10" listesindeki yeri (1 = en cok istenen). Listede degilse NULL.
+    Oncelik       INTEGER CHECK (Oncelik IS NULL OR Oncelik BETWEEN 1 AND $ilkOnSiniri)
 );
 
 CREATE INDEX IF NOT EXISTS IX_IstekListesi_Ad     ON IstekListesi(Ad);
 CREATE INDEX IF NOT EXISTS IX_IstekListesi_SiteId ON IstekListesi(SiteId);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_IstekListesi_Oncelik
+    ON IstekListesi(Oncelik) WHERE Oncelik IS NOT NULL;
 
 -- ----------------------------------------------------------------- Gorunumler
 CREATE VIEW IF NOT EXISTS vw_Kitaplar AS
@@ -112,7 +119,8 @@ SELECT  i.IstekId,
         s.Ad       AS Site,
         i.FiyatKurus,
         i.SatinAlindi,
-        i.EklenmeTarihi
+        i.EklenmeTarihi,
+        i.Oncelik
 FROM      IstekListesi  AS i
 LEFT JOIN Yazarlar      AS ya ON ya.YazarId    = i.YazarId
 LEFT JOIN Yayinevleri   AS yv ON yv.YayineviId = i.YayineviId

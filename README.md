@@ -48,7 +48,7 @@ Uygulama ilk açıldığında kütüphane boştur. **Kitaplarım** sekmesindeki
 |---|---|
 | **Özet** | Kaç kitabınız var, kaçını okudunuz, toplam kaç sayfa, istek listenizin tahmini maliyeti |
 | **Kitaplarım** | Sahip olduğunuz kitaplar — arama, türe ve okundu durumuna göre filtreleme, ekleme, düzenleme, silme |
-| **İstek Listem** | Almak istedikleriniz; fiyat ve satış sitesiyle. Türe göre gruplanabilir |
+| **İstek Listem** | Almak istedikleriniz; fiyat ve satış sitesiyle. Türe göre gruplanabilir, en çok istediğiniz 10 kitap ayrıca sıralanabilir |
 | **Şifre** | Şifre değiştirme |
 
 Birkaç küçük kolaylık:
@@ -57,6 +57,10 @@ Birkaç küçük kolaylık:
 - İstek listesindeki bir kitabı satın alınca tek düğmeyle **Kitaplarım**'a taşıyabilirsiniz.
 - Yazar, yayınevi, tür ve site alanlarında listede olmayan bir değer yazarsanız
   sistem onu kendisi ekler.
+- Bu alanlarda kayıtlı bir değerin başını yazıp **Tab**'a basarsanız gerisi
+  tamamlanır: `orh` + Tab → `Orhan Pamuk`.
+- İstek kartındaki ☆ ile bir kitabı **İlk 10** listenize ekleyip çıkarabilirsiniz.
+  Üstteki *İlk 10* düğmesi bu listeyi açar; sürükleyerek ya da oklarla sıralarsınız.
 - Arama Türkçe büyük/küçük harf ayrımı yapmaz: `istanbul` yazarak `İSTANBUL`
   geçen kitapları bulursunuz.
 

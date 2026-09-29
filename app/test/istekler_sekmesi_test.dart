@@ -114,6 +114,41 @@ void main() {
     expect(find.text('Körlük'), findsNothing);
   });
 
+  testWidgets('Yıldızla İlk 10’a eklenir, İlk 10 görünümünde sırayla çıkar',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(sekmeyiSar(servis));
+    await tester.pumpAndSettle();
+    expect(find.text('İlk 10 (0)'), findsOneWidget);
+
+    // Kart sirasi SiraNo'ya gore: once Chainsaw Man, sonra Körlük eklenir
+    await tester.tap(find.byTooltip('İlk 10’a ekle').at(2)); // Körlük
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('İlk 10’a ekle').first); // Chainsaw Man
+    await tester.pumpAndSettle();
+    expect(find.text('İlk 10 (2)'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'İlk 10 (2)'));
+    await tester.pumpAndSettle();
+
+    // Izgara gizlenir, yalnizca siralanmis iki kayit kalir
+    expect(find.text('Tokyo Ghoul Cilt 1'), findsNothing);
+    final korluk = tester.getTopLeft(find.text('Körlük'));
+    final chainsaw = tester.getTopLeft(find.text('Chainsaw Man Cilt 1'));
+    expect(korluk.dy, lessThan(chainsaw.dy));
+
+    // Asagi tasi: Körlük ikinci siraya iner
+    await tester.tap(find.byTooltip('Aşağı taşı').first);
+    await tester.pumpAndSettle();
+    expect(
+      [for (final i in await servis.ilkOnuGetir()) i.ad],
+      ['Chainsaw Man Cilt 1', 'Körlük'],
+    );
+  });
+
   testWidgets('Toplam tutar yalnızca alınmamışları sayar', (tester) async {
     await tester.pumpWidget(sekmeyiSar(servis));
     await tester.pumpAndSettle();

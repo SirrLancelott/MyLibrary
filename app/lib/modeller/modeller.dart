@@ -79,6 +79,7 @@ class Istek {
     this.site,
     this.fiyat,
     required this.satinAlindi,
+    this.oncelik,
   });
 
   final int istekId;
@@ -93,6 +94,13 @@ class Istek {
   /// TL cinsinden. Veritabaninda kurus (tam sayi) olarak saklanir.
   final double? fiyat;
   final bool satinAlindi;
+
+  /// "Ilk 10" listesindeki sirasi (1 = en cok istenen); listede degilse null.
+  /// Ekleme/guncelleme penceresi bunu degistirmez; ayri servis
+  /// metotlariyla yonetilir.
+  final int? oncelik;
+
+  bool get ilkOndaMi => oncelik != null;
 }
 
 class Ozet {

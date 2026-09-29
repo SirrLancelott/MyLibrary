@@ -230,6 +230,24 @@ class Ceviri {
   String kitapligaTasindi(String ad) =>
       _i ? '“$ad” was moved to your library.' : '“$ad” kitaplığa taşındı.';
 
+  // ------------------------------------------------------------------ Ilk 10
+  String get ilkOn => _i ? 'Top 10' : 'İlk 10';
+  String get ilkOnaEkle => _i ? 'Add to Top 10' : 'İlk 10’a ekle';
+  String get ilkOndanCikar => _i ? 'Remove from Top 10' : 'İlk 10’dan çıkar';
+  String get yukariTasi => _i ? 'Move up' : 'Yukarı taşı';
+  String get asagiTasi => _i ? 'Move down' : 'Aşağı taşı';
+  String ilkOnaEklendi(String ad) =>
+      _i ? '“$ad” was added to your Top 10.' : '“$ad” İlk 10’a eklendi.';
+  String ilkOndanCikarildi(String ad) => _i
+      ? '“$ad” was removed from your Top 10.'
+      : '“$ad” İlk 10’dan çıkarıldı.';
+  String ilkOnDoluluk(int adet, int sinir) => _i
+      ? '$adet / $sinir • drag to reorder'
+      : '$adet / $sinir • sıralamak için sürükleyin';
+  String get ilkOnBos => _i
+      ? 'Your Top 10 is empty.\nUse the star on a wish card to add a book.'
+      : 'İlk 10 listeniz boş.\nİstek kartlarındaki yıldızla kitap ekleyin.';
+
   // -------------------------------------------------------------- Kitap penceresi
   String get kitabiDuzenle => _i ? 'Edit book' : 'Kitabı düzenle';
   String get yeniKitapEkle => _i ? 'Add a new book' : 'Yeni kitap ekle';
@@ -246,9 +264,11 @@ class Ceviri {
       _i ? 'I have read this book' : 'Bu kitabı okudum';
   String get otomatikEklenirNotu => _i
       ? 'If an author, publisher or genre is not in the list, whatever you '
-            'type is added automatically.'
+            'type is added automatically. Type the start of a saved one and '
+            'press Tab to complete it.'
       : 'Yazar, yayınevi ve tür listede yoksa yazdığınız değer '
-            'otomatik olarak eklenir.';
+            'otomatik olarak eklenir. Kayıtlı bir değerin başını yazıp '
+            'Tab’a basarsanız tamamlanır.';
 
   // ------------------------------------------------------------ Istek penceresi
   String get istegiDuzenle => _i ? 'Edit wish' : 'İsteği düzenle';
@@ -326,6 +346,10 @@ class Ceviri {
         return _i ? 'Book not found.' : 'Kitap bulunamadı.';
       case HataKodu.kayitYok:
         return _i ? 'Record not found.' : 'Kayıt bulunamadı.';
+      case HataKodu.ilkOnDolu:
+        return _i
+            ? 'Your Top 10 is full. Remove a book from it first.'
+            : 'İlk 10 listesi dolu. Önce listeden bir kitap çıkarın.';
       case null:
         return hata.mesaj;
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../yerellestirme/ceviri.dart';
 
@@ -187,7 +188,13 @@ class IstatistikKutusu extends StatelessWidget {
 }
 
 /// Serbest metin girisine izin veren, mevcut degerleri oneren alan.
-/// (Yeni bir yazar/yayinevi yazildiginda API onu otomatik olusturur.)
+/// (Yeni bir yazar/yayinevi yazildiginda servis onu otomatik olusturur.)
+///
+/// Tab tusu yazilani kayitli degerle tamamlar ve sonraki alana gecer:
+/// "orh" + Tab -> "Orhan Pamuk". Yalnizca basi yazilanla eslesen bir deger
+/// varsa tamamlanir; "Ali" yazip Tab'a basmak "Sabahattin Ali" olmaz,
+/// boylece yeni bir ad girerken kayitli bir adin ustune yazilmaz. Ok
+/// tuslariyla listeden bir secenek isaretlenmisse Tab onu alir.
 class OneriliAlan extends StatefulWidget {
   const OneriliAlan({
     super.key,
@@ -207,7 +214,13 @@ class OneriliAlan extends StatefulWidget {
 }
 
 class _OneriliAlanState extends State<OneriliAlan> {
-  final _odak = FocusNode();
+  late final _odak = FocusNode(onKeyEvent: _tusaBasildi);
+
+  /// Acik oneri listesinde ok tuslariyla isaretlenen satir.
+  /// optionsViewBuilder her cizimde gunceller.
+  int _isaretliSira = 0;
+
+  static const _enFazlaOneri = 8;
 
   @override
   void dispose() {
@@ -215,48 +228,120 @@ class _OneriliAlanState extends State<OneriliAlan> {
     super.dispose();
   }
 
+  /// Karsilastirma icin sadelestirir. Dart'in toLowerCase'i "İ"yi
+  /// "i + nokta" yapar, "I"yi de "ı" degil "i" yapar; ikisi de
+  /// Turkce yazimda eslesmeyi bozmasin diye "ı" ve "i" ayni sayilir.
+  static String _sade(String metin) => metin
+      .trim()
+      .toLowerCase()
+      .replaceAll('̇', '')
+      .replaceAll('ı', 'i');
+
+  /// Once basi yazilanla baslayanlar, sonra icinde gecenler.
+  List<String> _eslesenler(String girdi) {
+    final aranan = _sade(girdi);
+    if (aranan.isEmpty) return widget.oneriler.take(_enFazlaOneri).toList();
+
+    final basta = <String>[];
+    final icinde = <String>[];
+    for (final oneri in widget.oneriler) {
+      final sade = _sade(oneri);
+      if (sade.startsWith(aranan)) {
+        basta.add(oneri);
+      } else if (sade.contains(aranan)) {
+        icinde.add(oneri);
+      }
+    }
+    return [...basta, ...icinde].take(_enFazlaOneri).toList();
+  }
+
+  /// Tab'a basildiginda yazilacak deger; tamamlanacak bir sey yoksa null.
+  String? _tamamlanacakDeger() {
+    final yazilan = widget.denetleyici.text;
+    if (yazilan.trim().isEmpty) return null;
+
+    final secenekler = _eslesenler(yazilan);
+    if (secenekler.isEmpty) return null;
+
+    // Kullanici ok tuslariyla bir satir sectiyse o gecerli.
+    if (_isaretliSira > 0 && _isaretliSira < secenekler.length) {
+      return secenekler[_isaretliSira];
+    }
+
+    final ilk = secenekler.first;
+    return _sade(ilk).startsWith(_sade(yazilan)) ? ilk : null;
+  }
+
+  KeyEventResult _tusaBasildi(FocusNode _, KeyEvent olay) {
+    if (olay is! KeyDownEvent ||
+        olay.logicalKey != LogicalKeyboardKey.tab ||
+        HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+
+    final deger = _tamamlanacakDeger();
+    if (deger != null && deger != widget.denetleyici.text) {
+      widget.denetleyici.value = TextEditingValue(
+        text: deger,
+        selection: TextSelection.collapsed(offset: deger.length),
+      );
+    }
+
+    // Tus yutulmaz: odak her durumda bir sonraki alana gecer.
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     return RawAutocomplete<String>(
       textEditingController: widget.denetleyici,
       focusNode: _odak,
-      optionsBuilder: (deger) {
-        final metin = deger.text.trim().toLowerCase();
-        if (metin.isEmpty) return widget.oneriler.take(8);
-        return widget.oneriler
-            .where((o) => o.toLowerCase().contains(metin))
-            .take(8);
-      },
+      optionsBuilder: (deger) => _eslesenler(deger.text),
       fieldViewBuilder: (context, denetleyici, odak, gonder) => TextField(
         controller: denetleyici,
         focusNode: odak,
+        // Enter isaretli oneriyi secer.
+        onSubmitted: (_) => gonder(),
         decoration: InputDecoration(
           labelText: widget.etiket,
           prefixIcon: widget.simge == null ? null : Icon(widget.simge),
         ),
       ),
-      optionsViewBuilder: (context, sec, secenekler) => Align(
-        alignment: Alignment.topLeft,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(8),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 220, maxWidth: 360),
-            child: ListView(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              children: [
-                for (final secenek in secenekler)
-                  ListTile(
-                    dense: true,
-                    title: Text(secenek),
-                    onTap: () => sec(secenek),
-                  ),
-              ],
+      optionsViewBuilder: (context, sec, secenekler) {
+        final isaretli = AutocompleteHighlightedOption.of(context);
+        _isaretliSira = isaretli;
+
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220, maxWidth: 360),
+              // Satirlar odak almaz: Tab oneri listesine degil sonraki
+              // alana gecsin. Klavyeyle secim ok tuslariyla yapilir.
+              child: ExcludeFocus(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  children: [
+                    for (final (sira, secenek) in secenekler.indexed)
+                      ListTile(
+                        dense: true,
+                        selected: sira == isaretli,
+                        selectedTileColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.08),
+                        title: Text(secenek),
+                        onTap: () => sec(secenek),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
